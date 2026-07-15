@@ -329,11 +329,14 @@ jobs:
         run: sudo packer init buttons-usb-relay.pkr.hcl
 
       - name: Build customized image with Packer
+        env:
+          ROOT_PASSWORD: ${{ secrets.ROOT_PASSWORD }}
         run: |
           sudo packer build \
             -var "url=build/output/images/armbian.img" \
             -var "build=$(cat artifacts/buttons-version.txt)" \
             -var "deb_path=artifacts/bitfocus-buttons-usb-relay-headless.deb" \
+            -var "root_password=${ROOT_PASSWORD}" \
             buttons-usb-relay.pkr.hcl
 
       # ── Compress and upload ────────────────────────────────────────────────
