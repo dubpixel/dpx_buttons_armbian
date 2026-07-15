@@ -313,7 +313,7 @@ jobs:
             BUILD_MINIMAL=yes \
             KERNEL_CONFIGURE=no \
             COMPRESS_OUTPUTIMAGE=no
-          mv build/output/images/*.img build/output/images/armbian.img
+          sudo mv build/output/images/*.img build/output/images/armbian.img
 
       # ── Customize image with Packer ────────────────────────────────────────
       - name: Install Packer
