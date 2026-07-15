@@ -295,12 +295,14 @@ jobs:
         id: meta
         run: |
           VERSION=$(cat artifacts/buttons-version.txt)
+          BUILD_VERSION=$(cat VERSION)
           BOARD="${{ inputs.armbian-board }}"
-          ARTIFACT_NAME="${BOARD}-buttons-usb-relay-${VERSION}"
+          ARTIFACT_NAME="${BOARD}-buttons-usb-relay-${VERSION}-build${BUILD_VERSION}"
           echo "buttons-version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "artifact-name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
           echo "Board   : ${BOARD}"
           echo "Version : ${VERSION}"
+          echo "Build   : ${BUILD_VERSION}"
           echo "Artifact: ${ARTIFACT_NAME}"
 
       # ── Build base Armbian image ────────────────────────────────────────────
@@ -350,8 +352,9 @@ jobs:
         run: |
           IMG="output-buttonspi/armbian-buttons-usb-relay.img"
           VERSION=$(cat artifacts/buttons-version.txt)
+          BUILD_VERSION=$(cat VERSION)
           BOARD="${{ inputs.armbian-board }}"
-          FINAL_NAME="${BOARD}-buttons-usb-relay-${VERSION}.img"
+          FINAL_NAME="${BOARD}-buttons-usb-relay-${VERSION}-build${BUILD_VERSION}.img"
 
           LOOP=$(sudo losetup -fP --show "$IMG")
           ROOT_PART="${LOOP}p1"

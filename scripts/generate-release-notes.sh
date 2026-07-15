@@ -2,14 +2,15 @@
 # generate-release-notes.sh
 # Writes a GitHub Release markdown body to /tmp/release-notes.md
 #
-# Usage: bash scripts/generate-release-notes.sh <version> <assets-dir>
+# Usage: bash scripts/generate-release-notes.sh <buttons-version> <assets-dir> [build-version]
 #
-# Example: bash scripts/generate-release-notes.sh 0.1.0-beta.4 release-assets
+# Example: bash scripts/generate-release-notes.sh 0.1.0-beta.4 release-assets 0.2.0
 
 set -euo pipefail
 
-VERSION="${1:?Usage: $0 <version> <assets-dir>}"
-ASSETS_DIR="${2:?Usage: $0 <version> <assets-dir>}"
+VERSION="${1:?Usage: $0 <buttons-version> <assets-dir> [build-version]}"
+ASSETS_DIR="${2:?Usage: $0 <buttons-version> <assets-dir> [build-version]}"
+BUILD_VERSION="${3:-$(cat VERSION 2>/dev/null || echo 'unknown')}"
 OUT="/tmp/release-notes.md"
 
 # Build board list from .img.gz filenames
@@ -23,7 +24,7 @@ for f in "$ASSETS_DIR"/*.img.gz; do
 done
 
 cat > "$OUT" << ENDOFNOTES
-## Bitfocus Buttons USB Relay ${VERSION}
+## Bitfocus Buttons USB Relay ${VERSION} — Pipeline v${BUILD_VERSION}
 
 Flash-ready Armbian images with [Bitfocus Buttons USB Relay](https://bitfocus.io/buttons) (headless) pre-installed.
 Plug in your Stream Deck, power on — the relay is already running.

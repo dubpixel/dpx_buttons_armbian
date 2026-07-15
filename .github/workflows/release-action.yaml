@@ -137,7 +137,8 @@ jobs:
           VERSION: ${{ needs.check-version.outputs.buttons-version }}
         run: |
           TAG="buttons-usb-relay-${VERSION}"
-          bash scripts/generate-release-notes.sh "$VERSION" release-assets
+          BUILD_VERSION=$(cat VERSION)
+          bash scripts/generate-release-notes.sh "$VERSION" release-assets "$BUILD_VERSION"
 
           # Delete existing release with this tag if present (handles force rebuilds)
           gh release delete "$TAG" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
