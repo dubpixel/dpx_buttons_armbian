@@ -137,10 +137,12 @@ The following boards are built **automatically** on every new Buttons release an
 
 #### Recommended accessories
 
-| Accessory | Why |
-|---|---|
-| [Rock Pi S PoE HAT](https://shop.allnetchina.cn/products/rock-pi-s-poe-hat) | Power over Ethernet — one cable for both power and network, no power brick needed |
-| [ecoPI S housing](https://shop.allnetchina.cn/products/rock-pi-s-case) | Enclosure designed for Rock Pi S, clean install |
+| Accessory | Board | Why |
+|---|---|---|
+| [Rock Pi S PoE HAT](https://shop.allnetchina.cn/products/rock-pi-s-poe-hat) | Rock Pi S | Dedicated HAT — cleanest single-cable install |
+| [ecoPI S housing](https://shop.allnetchina.cn/products/rock-pi-s-case) | Rock Pi S | Enclosure designed for Rock Pi S |
+| [Waveshare PoE Splitter USB-C 2.5A](https://www.waveshare.com/poe-splitter-type-c.htm) | Orange Pi Zero 3 | PoE → USB-C 5V/2.5A, metal case, gigabit |
+| [Waveshare PoE Splitter USB-C 5A](https://www.waveshare.com/poe-splitter-25w-type-c.htm) | Orange Pi Zero 3 | Same but 25W — more headroom for heavier loads |
 
 All 150+ [Armbian-supported boards](https://www.armbian.com/download/) are available for one-off manual builds — see [Path C](#-path-c--build-any-other-board-manually).
 
