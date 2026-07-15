@@ -43,6 +43,10 @@ Or use [Balena Etcher](https://etcher.balena.io/) — it reads \`.gz\` directly,
 2. \`bitfocus-buttons-usb-relay\` starts automatically and announces itself via mDNS on port \`3040\`
 3. Open **Bitfocus Buttons** — relay appears under discovered devices automatically
 
+### Recommended accessories
+- **[Rock Pi S PoE HAT](https://shop.allnetchina.cn/products/rock-pi-s-poe-hat)** — power + network over a single ethernet cable, no power brick needed
+- **[ecoPI S housing](https://shop.allnetchina.cn/products/rock-pi-s-case)** — enclosure designed for Rock Pi S
+
 ### Troubleshoot (SSH in)
 \`\`\`bash
 systemctl status bitfocus-buttons-usb-relay

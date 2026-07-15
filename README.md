@@ -135,6 +135,13 @@ The following boards are built **automatically** on every new Buttons release an
 | [Rock Pi 4B+](https://wiki.radxa.com/Rockpi4) | `rockpi-4bplus` |
 | [Rock Pi S0](https://radxa.com/products/rockpi/s0) | `rock-s0` |
 
+#### Recommended accessories
+
+| Accessory | Why |
+|---|---|
+| [Rock Pi S PoE HAT](https://shop.allnetchina.cn/products/rock-pi-s-poe-hat) | Power over Ethernet — one cable for both power and network, no power brick needed |
+| [ecoPI S housing](https://shop.allnetchina.cn/products/rock-pi-s-case) | Enclosure designed for Rock Pi S, clean install |
+
 All 150+ [Armbian-supported boards](https://www.armbian.com/download/) are available for one-off manual builds — see [Path C](#-path-c--build-any-other-board-manually).
 
 ---
