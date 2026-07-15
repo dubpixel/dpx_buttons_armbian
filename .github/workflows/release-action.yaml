@@ -135,42 +135,7 @@ jobs:
           VERSION: ${{ needs.check-version.outputs.buttons-version }}
         run: |
           TAG="buttons-usb-relay-${VERSION}"
-
-          # Build board list from artifact filenames
-          BOARD_LIST=""
-          for f in release-assets/*.img.gz; do
-            B=$(basename "$f" | sed 's/-buttons-usb-relay-.*//')
-            BOARD_LIST="${BOARD_LIST}- \`${B}\` — \`$(basename "$f")\`"$'\n'
-          done
-
-          # Write notes to file to avoid YAML quoting issues
-          cat > /tmp/release-notes.md << NOTES
-## Bitfocus Buttons USB Relay ${VERSION}
-
-Flash-ready Armbian images with [Bitfocus Buttons USB Relay](https://bitfocus.io/buttons) (headless) pre-installed.
-Plug in your Stream Deck, power on — the relay is already running.
-
-### Boards included
-${BOARD_LIST}
-### Flash it
-\`\`\`bash
-# macOS / Linux
-gunzip -c <image>.img.gz | sudo dd of=/dev/sdX bs=4M status=progress
-\`\`\`
-Or use [Balena Etcher](https://etcher.balena.io/) — it reads \`.gz\` directly, no extraction needed.
-
-### First boot
-1. Insert SD card, connect Stream Deck via USB, power on
-2. \`bitfocus-buttons-usb-relay\` starts automatically
-3. Open **Bitfocus Buttons** — relay appears via mDNS on port \`3040\`
-
-### Troubleshoot (SSH in)
-\`\`\`bash
-systemctl status bitfocus-buttons-usb-relay
-journalctl -u bitfocus-buttons-usb-relay -f
-\`\`\`
-NOTES
-
+          bash scripts/generate-release-notes.sh "$VERSION" release-assets
           gh release create "$TAG" \
             --repo "${{ github.repository }}" \
             --title "Buttons USB Relay ${VERSION}" \
