@@ -23,6 +23,13 @@ variable "deb_path" {
   description = "Local path to the downloaded .deb package, relative to the build root"
 }
 
+variable "root_password" {
+  type      = string
+  default   = ""
+  sensitive = true
+  description = "Root password to set in the image. Leave blank to use Armbian default (1234 + forced change)."
+}
+
 source "arm-image" "armbian" {
   iso_checksum    = "none"
   iso_url         = var.url
@@ -56,13 +63,12 @@ build {
       # Disable Armbian first-login prompt
       "rm -f /root/.not_logged_in_yet",
 
-      # Set hostname
-      "CURRENT_HOSTNAME=$(cat /etc/hostname | tr -d ' \\t\\n\\r')",
-      "echo buttons-usb-relay > /etc/hostname",
-      "sed -i \"s/127.0.1.1.*$CURRENT_HOSTNAME/127.0.1.1\\tbuttons-usb-relay/g\" /etc/hosts",
+      # Set placeholder hostname — dpx-set-hostname.service will replace
+      # it with dpx-buttnode-XXXX (MAC-derived) on first boot
+      "echo dpx-buttnode > /etc/hostname",
+      "sed -i 's/127.0.1.1.*/127.0.1.1\tdpx-buttnode/g' /etc/hosts",
 
       # SSH enabled for remote access and debugging
-      # Login: root / 1234  (Armbian forces a password change on first login)
       "systemctl enable ssh || true",
     ]
   }
@@ -71,8 +77,11 @@ build {
   provisioner "shell" {
     execute_command = "chmod +x {{ .Path }}; {{ .Vars }} su root -c {{ .Path }}"
     inline_shebang  = "/bin/bash -e"
+    environment_vars = [
+      "BUTTONS_BUILD=${var.build}",
+      "ROOT_PASSWORD=${var.root_password}",
+    ]
     inline = [
-      "export BUTTONS_BUILD=${var.build}",
       "chmod +x /tmp/install-buttons.sh",
       "/tmp/install-buttons.sh"
     ]

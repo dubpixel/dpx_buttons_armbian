@@ -1,4 +1,4 @@
-title: dpx_buttons_armbian
+title: dpx_buttons_relay_armbian
 description: Flash-ready Armbian images with Bitfocus Buttons USB Relay pre-installed for ARM SBCs
 remote_theme: pages-themes/midnight@v0.2.0
 plugins:

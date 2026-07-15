@@ -4,7 +4,7 @@ This document provides operational directives for AI coding assistants (GitHub C
 
 ---
 
-## PROJECT: dpx_buttons_armbian
+## PROJECT: dpx_buttons_relay_armbian
 
 **Status:** v0.1.0 complete (2026-07-15) ✅  
 **Branch:** `main`  
@@ -81,7 +81,7 @@ Automated GitHub Actions build pipeline that produces flash-ready `.img.gz` Armb
 **Update Buttons to a new version:**
 ```bash
 ./scripts/upload-mirror.sh ~/Downloads/bitfocus-buttons-usb-relay-headless_X.Y.Z_arm64.tar.gz
-gh workflow run release-action.yaml --repo dubpixel/dpx_buttons_armbian
+gh workflow run release-action.yaml --repo dubpixel/dpx_buttons_relay_armbian
 ```
 
 **Manual single-board test build:**
@@ -99,7 +99,7 @@ Edit `.github/workflows/release-action.yaml` under `matrix.board`, add the Armbi
 
 **Check what version is in the mirror:**
 ```bash
-gh release view buttons-deb-mirror --repo dubpixel/dpx_buttons_armbian --json assets --jq '.assets[].name'
+gh release view buttons-deb-mirror --repo dubpixel/dpx_buttons_relay_armbian --json assets --jq '.assets[].name'
 ```
 
 ### Reference

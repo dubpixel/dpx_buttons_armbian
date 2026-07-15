@@ -17,7 +17,7 @@
 set -euo pipefail
 
 MIRROR_TAG="buttons-deb-mirror"
-REPO="dubpixel/dpx_buttons_armbian"
+REPO="dubpixel/dpx_buttons_relay_armbian"
 
 # ── Validate input ───────────────────────────────────────────────────────────
 

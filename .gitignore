@@ -40,7 +40,7 @@ fp-info-cache
 # kicad local profile
 *.kicad_prl
 
-##########------ dpx_buttons_armbian ------######
+##########------ dpx_buttons_relay_armbian ------######
 # Build outputs
 artifacts/
 output-buttonspi/

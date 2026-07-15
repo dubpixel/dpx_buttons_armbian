@@ -7,7 +7,7 @@
 
 <!-- /// d   u   b   p   i   x   e   l  ---  f   o   r   k   ////--v0.5.7 -->
 <!--this has additionally been modifed by @dubpixel for hardware use -->
-<!--search dpx_buttons_armbian.. search & replace is COMMAND OPTION F -->
+<!--search dpx_buttons_relay_armbian.. search & replace is COMMAND OPTION F -->
 
 <!--this is the version for software -->
 <!--todo ** add small product image thats not in a details tag -->
@@ -36,10 +36,10 @@
 </div>
 <!-- PROJECT LOGO -->
 <div align="center">
-  <a href="https://github.com/dubpixel/dpx_buttons_armbian">
+  <a href="https://github.com/dubpixel/dpx_buttons_relay_armbian">
     <img src="images/logo.png" alt="Logo" height="120">
   </a>
-<h1 align="center">dpx_buttons_armbian</h1>
+<h1 align="center">dpx_buttons_relay_armbian</h1>
 <h3 align="center"><i>Flash-ready Armbian images with Bitfocus Buttons USB Relay pre-installed</i></h3>
   <p align="center">
     Automated GitHub Actions build pipeline that produces ready-to-flash <code>.img.gz</code> images
@@ -48,11 +48,11 @@
     Write the image, plug in your Stream Deck, power on — done.
     <br /><br />
      »  
-     <a href="https://github.com/dubpixel/dpx_buttons_armbian/releases"><strong>Download a Release »</strong></a>
+     <a href="https://github.com/dubpixel/dpx_buttons_relay_armbian/releases"><strong>Download a Release »</strong></a>
      <br />
-    <a href="https://github.com/dubpixel/dpx_buttons_armbian/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    <a href="https://github.com/dubpixel/dpx_buttons_relay_armbian/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
-    <a href="https://github.com/dubpixel/dpx_buttons_armbian/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/dubpixel/dpx_buttons_relay_armbian/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
     </p>
 </div>
    <br />
@@ -126,7 +126,7 @@ A daily scheduled workflow checks whether the mirror release has a version that 
 
 ### Supported Boards
 
-The following boards are built **automatically** on every new Buttons release and published to [Releases](https://github.com/dubpixel/dpx_buttons_armbian/releases):
+The following boards are built **automatically** on every new Buttons release and published to [Releases](https://github.com/dubpixel/dpx_buttons_relay_armbian/releases):
 
 | Board | Armbian ID |
 |---|---|
@@ -145,7 +145,7 @@ All 150+ [Armbian-supported boards](https://www.armbian.com/download/) are avail
 
 #### 1. Download the image
 
-Go to [**Releases**](https://github.com/dubpixel/dpx_buttons_armbian/releases) and download the `.img.gz` for your board:
+Go to [**Releases**](https://github.com/dubpixel/dpx_buttons_relay_armbian/releases) and download the `.img.gz` for your board:
 
 ```
 rockpi-s-buttons-usb-relay-0.1.0-beta.4.img.gz
@@ -219,7 +219,7 @@ The daily scheduled check at 06:00 UTC will detect the new version and automatic
 
 To trigger it **right now** instead of waiting:
 ```bash
-gh workflow run release-action.yaml --repo dubpixel/dpx_buttons_armbian
+gh workflow run release-action.yaml --repo dubpixel/dpx_buttons_relay_armbian
 ```
 
 Watch it: **Actions → Release — Buttons USB Relay Images → latest run**
@@ -240,7 +240,7 @@ Any of the 150+ Armbian-supported boards can be built on demand. The artifact is
 **Via terminal:**
 ```bash
 gh workflow run armbian-builder.yaml \
-  --repo dubpixel/dpx_buttons_armbian \
+  --repo dubpixel/dpx_buttons_relay_armbian \
   -f armbian-board=orangepizero3
 ```
 
@@ -350,7 +350,7 @@ dns-sd -B _buttons._tcp local     # macOS
 - [ ] SHA256 checksums attached to each release
 - [ ] WiFi pre-configuration support in image (via Armbian `wpa_supplicant` overlay)
 
-See the [open issues](https://github.com/dubpixel/dpx_buttons_armbian/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/dubpixel/dpx_buttons_relay_armbian/issues) for a full list of proposed features (and known issues).
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -367,8 +367,8 @@ Don't forget to give the project a star! Thanks again!
 5. Open a Pull Request
 
 ### Top contributors:
-<a href="https://github.com/dubpixel/dpx_buttons_armbian/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=dubpixel/dpx_buttons_armbian" alt="contrib.rocks image" />
+<a href="https://github.com/dubpixel/dpx_buttons_relay_armbian/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=dubpixel/dpx_buttons_relay_armbian" alt="contrib.rocks image" />
 </a>
 
 <!-- LICENSE -->
@@ -379,7 +379,7 @@ Distributed under the [LICENSE_TYPE] License. See `LICENSE.txt` for more informa
 
   ### Joshua Fleitell - i@dubpixel.tv
 
-  Project Link: [https://github.com/dubpixel/dpx_buttons_armbian](https://github.com/dubpixel/dpx_buttons_armbian)
+  Project Link: [https://github.com/dubpixel/dpx_buttons_relay_armbian](https://github.com/dubpixel/dpx_buttons_relay_armbian)
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
@@ -583,16 +583,16 @@ Any board in [Armbian's supported hardware list](https://www.armbian.com/downloa
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/dubpixel/dpx_buttons_armbian.svg?style=flat-square
-[contributors-url]: https://github.com/dubpixel/dpx_buttons_armbian/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/gdubpixel/dpx_buttons_armbian.svg?style=flat-square
-[forks-url]: https://github.com/dubpixel/dpx_buttons_armbian/network/members
-[stars-shield]: https://img.shields.io/github/stars/dubpixel/dpx_buttons_armbian.svg?style=flat-square
-[stars-url]: https://github.com/dubpixel/dpx_buttons_armbian/stargazers
-[issues-shield]: https://img.shields.io/github/issues/dubpixel/dpx_buttons_armbian.svg?style=flat-square
-[issues-url]: https://github.com/dubpixel/dpx_buttons_armbian/issues
-[license-shield]: https://img.shields.io/github/license/dubpixel/dpx_buttons_armbian.svg?style=flat-square
-[license-url]: https://github.com/dubpixel/dpx_buttons_armbian/blob/main/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/dubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
+[contributors-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/gdubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
+[forks-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/network/members
+[stars-shield]: https://img.shields.io/github/stars/dubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
+[stars-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/stargazers
+[issues-shield]: https://img.shields.io/github/issues/dubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
+[issues-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/issues
+[license-shield]: https://img.shields.io/github/license/dubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
+[license-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/blob/main/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/jfleitell
 [product-front]: images/front.png
