@@ -27,11 +27,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.1.0] - YYYY-MM-DD
+## [0.1.0] - 2026-07-15
 
 ### Added
-- Initial release
-- Core functionality implementation
+- Automated two-stage build pipeline: Armbian base image + HashiCorp Packer chroot customization
+- Self-hosted package mirror via GitHub Releases (`buttons-deb-mirror` tag) — no Bitfocus credentials needed in CI
+- Matrix builds for Orange Pi Zero family (`orangepizero`, `orangepizero2`, `orangepizero2w`, `orangepizero3`)
+- Daily scheduled version check — auto-builds and publishes a GitHub Release when mirror is updated
+- `scripts/upload-mirror.sh` — one-command helper to upload new Bitfocus packages to the mirror release
+- `scripts/download-buttons.sh` — downloads package from mirror release using built-in `GITHUB_TOKEN`
+- `scripts/install-buttons.sh` — installs `.deb` inside Armbian chroot, enables `avahi-daemon` for mDNS discovery
+- `buttons-usb-relay.pkr.hcl` — Packer build definition targeting ARM64 Armbian images
+- Initial support for Bitfocus Buttons USB Relay Headless v0.1.0-beta.4
 
 ---
 
