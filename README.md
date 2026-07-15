@@ -117,112 +117,149 @@ A daily scheduled workflow checks whether the mirror release has a version that 
 
 ## Getting Started
 
+> **Pick your path:**
+> - [**→ I just want to flash a board**](#-path-a--flash-a-pre-built-image) — download, flash, done
+> - [**→ Bitfocus released a new version**](#-path-b--update-to-a-new-buttons-version) — one command to update the pipeline
+> - [**→ I need a board not in the auto-release list**](#-path-c--build-any-other-board-manually) — manual dispatch for any of 150+ boards
+
+---
+
 ### Supported Boards
 
-All 150+ [Armbian-supported boards](https://www.armbian.com/download/) are available for manual builds via **Actions → Build Armbian + Buttons USB Relay Image → Run workflow**.
+The following boards are built **automatically** on every new Buttons release and published to [Releases](https://github.com/dubpixel/dpx_buttons_armbian/releases):
 
-The following boards are built **automatically** on every new Buttons release:
+| Board | Armbian ID |
+|---|---|
+| Rock Pi S | `rockpi-s` |
+| Rock Pi 4B | `rockpi-4b` |
+| Rock Pi 4B+ | `rockpi-4bplus` |
+| Rock Pi S0 | `rock-s0` |
 
-| Board | Armbian ID | Notes |
-|---|---|---|
-| Rock Pi S | `rockpi-s` | Compact, low-power — primary target |
-| Rock Pi 4B | `rockpi-4b` | Quad-core RK3399, 4GB RAM |
-| Rock Pi 4B+ | `rockpi-4bplus` | Rock Pi 4B with eMMC |
-| Rock Pi S0 | `rock-s0` | Successor to Rock Pi S |
-
----
-
-### Step 1 — Get the image
-
-Go to the [**Releases**](https://github.com/dubpixel/dpx_buttons_armbian/releases) page and download the `.img.gz` for your board, e.g.:
-
-```
-orangepizero3-buttons-usb-relay-0.1.0-beta.4.img.gz
-```
-
-The file is a gzip-compressed raw disk image — no extraction needed before flashing.
+All 150+ [Armbian-supported boards](https://www.armbian.com/download/) are available for one-off manual builds — see [Path C](#-path-c--build-any-other-board-manually).
 
 ---
 
-### Step 2 — Flash to SD card
+### ✅ Path A — Flash a pre-built image
 
-#### Option A: Balena Etcher (easiest, any OS)
+**What you need:** A microSD card (8 GB min), your Rock Pi board, a Stream Deck.
 
-1. Download [Balena Etcher](https://etcher.balena.io/)
-2. Click **Flash from file** → select the `.img.gz` (Etcher handles the decompression)
-3. Select your SD card
-4. Click **Flash**
+#### 1. Download the image
 
-#### Option B: command line (macOS / Linux)
+Go to [**Releases**](https://github.com/dubpixel/dpx_buttons_armbian/releases) and download the `.img.gz` for your board:
 
+```
+rockpi-s-buttons-usb-relay-0.1.0-beta.4.img.gz
+```
+
+#### 2. Flash to SD card
+
+**Easiest — [Balena Etcher](https://etcher.balena.io/) (Mac / Windows / Linux):**
+1. Open Etcher → **Flash from file** → pick the `.img.gz`
+2. Select your SD card
+3. Click **Flash** — Etcher handles the `.gz` decompression automatically
+
+**Command line (macOS):**
 ```bash
-# Find your SD card device first
-diskutil list          # macOS
-lsblk                  # Linux
+# Find your SD card — look for the right size disk
+diskutil list
 
-# macOS — unmount first, then write
 diskutil unmountDisk /dev/diskN
-gunzip -c orangepizero3-buttons-usb-relay-0.1.0-beta.4.img.gz \
+gunzip -c rockpi-s-buttons-usb-relay-0.1.0-beta.4.img.gz \
   | sudo dd of=/dev/rdiskN bs=4m status=progress
 diskutil eject /dev/diskN
+```
 
-# Linux
-gunzip -c orangepizero3-buttons-usb-relay-0.1.0-beta.4.img.gz \
+**Command line (Linux):**
+```bash
+lsblk   # find your SD card device
+
+gunzip -c rockpi-s-buttons-usb-relay-0.1.0-beta.4.img.gz \
   | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
-> ⚠️ Double-check your device path. Writing to the wrong disk will destroy data.
+> ⚠️ Triple-check your device path (`/dev/diskN` or `/dev/sdX`). Wrong device = wiped disk.
+
+#### 3. Boot and connect
+
+1. Insert SD card into the Rock Pi
+2. Plug in your Stream Deck via USB
+3. Plug in ethernet
+4. Power on — wait ~30 seconds
+
+**That's it.** Open **Bitfocus Buttons** on your computer — the relay appears automatically under discovered devices. No configuration needed.
+
+> The device hostname is `buttons-usb-relay.local` and it listens on port `3040` via mDNS.
 
 ---
 
-### Step 3 — First boot
+### 🔄 Path B — Update to a new Buttons version
 
-1. Insert the SD card into the SBC
-2. Connect your Stream Deck via USB
-3. Connect ethernet (or configure WiFi after first boot)
-4. Power on
-5. Wait ~30 seconds for the OS to boot
-6. Open **Bitfocus Buttons** on your computer — the relay appears automatically under discovered devices (mDNS, port `3040`)
+When Bitfocus releases a new version, this is the **entire process**:
 
-The hostname is `buttons-usb-relay.local`. SSH is disabled by default (it's a headless appliance). See [Usage](#usage) if you need it.
+#### 1. Download the new package from Bitfocus
 
----
+Go to [user.bitfocus.io/download](https://user.bitfocus.io/download), log in, and download:
+```
+bitfocus-buttons-usb-relay-headless_X.Y.Z_arm64.tar.gz
+```
 
-### Maintaining the mirror (keeping builds up to date)
+#### 2. Upload it to the mirror (one command)
 
-When Bitfocus releases a new version of the USB Relay software:
+> Requires [GitHub CLI](https://cli.github.com/): `brew install gh` then `gh auth login`
 
-1. Download the ARM64 `.tar.gz` from [user.bitfocus.io/download](https://user.bitfocus.io/download)
-   - Look for: `bitfocus-buttons-usb-relay-headless_X.Y.Z_arm64.tar.gz`
+```bash
+./scripts/upload-mirror.sh ~/Downloads/bitfocus-buttons-usb-relay-headless_X.Y.Z_arm64.tar.gz
+```
 
-2. Run the upload helper (requires [GitHub CLI](https://cli.github.com/) — `brew install gh`):
+This uploads the file to the `buttons-deb-mirror` release in this repo. Done.
 
-   ```bash
-   ./scripts/upload-mirror.sh ~/Downloads/bitfocus-buttons-usb-relay-headless_X.Y.Z_arm64.tar.gz
-   ```
+#### 3. Let CI do the rest (or trigger immediately)
 
-   This uploads the file to the `buttons-deb-mirror` release in this repo.
+The daily scheduled check at 06:00 UTC will detect the new version and automatically build all boards and publish a release.
 
-3. The daily scheduled build will detect the new version within 24 hours and publish a full release automatically. Or trigger it immediately:
+To trigger it **right now** instead of waiting:
+```bash
+gh workflow run release-action.yaml --repo dubpixel/dpx_buttons_armbian
+```
 
-   ```bash
-   gh workflow run release-action.yaml --repo dubpixel/dpx_buttons_armbian
-   ```
+Watch it: **Actions → Release — Buttons USB Relay Images → latest run**
 
 ---
 
-### Setting up the build pipeline (fork this repo)
+### 🛠 Path C — Build any other board manually
 
-1. Fork this repository on GitHub
-2. Run the upload helper once to seed the mirror release with the current package:
+Any of the 150+ Armbian-supported boards can be built on demand. The artifact is available for 7 days under the Actions run (not published as a public release).
+
+**Via GitHub web UI:**
+1. Go to **Actions → Build Armbian + Buttons USB Relay Image**
+2. Click **Run workflow**
+3. Pick your board from the dropdown
+4. Click **Run workflow**
+5. Wait ~45-90 min, then download the `.img.gz` from the run's Artifacts section
+
+**Via terminal:**
+```bash
+gh workflow run armbian-builder.yaml \
+  --repo dubpixel/dpx_buttons_armbian \
+  -f armbian-board=orangepizero3
+```
+
+Replace `orangepizero3` with any board ID from the [Armbian hardware list](https://www.armbian.com/download/).
+
+---
+
+### ⚙️ Fork and run your own pipeline
+
+1. Fork this repo on GitHub
+2. Seed the mirror with the current package:
    ```bash
    ./scripts/upload-mirror.sh ~/Downloads/bitfocus-buttons-usb-relay-headless_0.1.0-beta.4_arm64.tar.gz
    ```
-3. Trigger a build manually to verify everything works:
+3. Trigger a first build:
    - **Actions → Release — Buttons USB Relay Images → Run workflow → Force: true**
-4. Builds run automatically on schedule after that — just upload new packages as they drop
+4. Done — updates are fully automated from here
 
-> No GitHub Secrets required. The pipeline only uses the built-in `GITHUB_TOKEN`.
+> No GitHub Secrets needed. The pipeline uses only the built-in `GITHUB_TOKEN`.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -231,58 +268,57 @@ When Bitfocus releases a new version of the USB Relay software:
 
 ### SSH into the device
 
-SSH is disabled in the image by default. To re-enable it, connect a monitor + keyboard for the first boot, or temporarily enable it from another machine if you have local network access:
+SSH is disabled by default (headless appliance). To enable it:
 
 ```bash
-# From the SBC's console or a serial connection:
+# If you have a monitor/keyboard connected:
 sudo systemctl enable --now ssh
+
+# Default Armbian credentials:
+# User:     root
+# Password: 1234  (forced change on first console login)
 ```
 
-Default credentials (Armbian minimal):
-- **User:** `root`
-- **Password:** `1234` (you will be prompted to change it on first console login)
-
-After enabling SSH:
+Once enabled:
 ```bash
 ssh root@buttons-usb-relay.local
-# or use the IP address if mDNS isn't resolving
+# or by IP if mDNS isn't resolving on your network
 ```
 
 ---
 
-### Service management
+### Check the relay is running
 
 ```bash
-# Check status
+# Is it running?
 systemctl status bitfocus-buttons-usb-relay
 
-# Live logs
+# Watch live logs
 journalctl -u bitfocus-buttons-usb-relay -f
 
-# Restart
+# Restart it
 sudo systemctl restart bitfocus-buttons-usb-relay
-
-# Stop / disable autostart
-sudo systemctl stop bitfocus-buttons-usb-relay
-sudo systemctl disable bitfocus-buttons-usb-relay
 ```
 
 ---
 
-### Configure client mode
+### Connect to a specific Buttons server (client mode)
 
-By default the relay runs in **server mode**: it listens on port `3040` and announces itself via mDNS so Buttons discovers it automatically. No config needed.
+By default the relay announces itself via mDNS and Buttons discovers it automatically — **no config needed** for most setups.
 
-If mDNS doesn't work on your network (some managed switches block it), switch to **client mode** so the relay connects outbound to your Buttons server:
+If your network blocks mDNS (some managed switches do), point the relay directly at your Buttons server:
 
 ```bash
-# SSH into the SBC, then:
 sudo nano /etc/default/bitfocus-buttons-usb-relay
+```
 
-# Add or edit this line:
+Add this line:
+```
 EXTRA_ARGS="-buttonsAddress 192.168.1.10:3000"
+```
 
-# Save and restart:
+Then restart:
+```bash
 sudo systemctl restart bitfocus-buttons-usb-relay
 ```
 
@@ -290,15 +326,15 @@ sudo systemctl restart bitfocus-buttons-usb-relay
 
 ### Network discovery
 
-The device announces itself as `buttons-usb-relay.local` via mDNS (Avahi). If your Buttons app doesn't auto-discover it:
+The device announces itself as `buttons-usb-relay.local` on port `3040`.
 
 ```bash
-# From another machine on the same network:
+# Confirm it's on the network
+ping buttons-usb-relay.local
+
+# Browse mDNS (from another machine)
 avahi-browse -t _buttons._tcp     # Linux
 dns-sd -B _buttons._tcp local     # macOS
-
-# Or just ping to confirm it's up:
-ping buttons-usb-relay.local
 ```
 <!-- REFLECTION -->
 ## Reflection
