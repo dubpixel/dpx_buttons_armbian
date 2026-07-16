@@ -89,6 +89,25 @@ UNIT
 systemctl enable dpx-node-ui.service
 echo "==> dpx-node-ui.service: enabled (port 8080)"
 
+# ── Advertise dpx-node-ui via mDNS (_dpx-buttnode._tcp) ──────────────────────
+# This allows `avahi-browse _dpx-buttnode._tcp` to discover all units on the LAN
+# and powers the Nodes tab in the web UI.
+echo "==> Registering _dpx-buttnode._tcp mDNS service"
+
+mkdir -p /etc/avahi/services
+cat > /etc/avahi/services/dpx-node-ui.service << 'XML'
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<service-group>
+  <name replace-wildcards="yes">DPX Buttnode %h</name>
+  <service>
+    <type>_dpx-buttnode._tcp</type>
+    <port>8080</port>
+  </service>
+</service-group>
+XML
+echo "==> mDNS service registered"
+
 # ── Clean up ───────────────────────────────────────────────────────────────────
 rm -f "$DEB"
 apt-get clean

@@ -19,7 +19,9 @@ from pathlib import Path
 
 PORT = 8080
 HOSTNAME_MARKER = "/var/lib/dpx-hostname-set"
-BUTTONS_API = "http://localhost:3040"
+BUTTONS_API    = "http://localhost:3040"
+NETWORKD_DIR   = Path("/etc/systemd/network")
+DPX_NET_FILE   = NETWORKD_DIR / "10-dpx-eth.network"
 
 # ── System helpers ─────────────────────────────────────────────────────────────
 
@@ -69,34 +71,79 @@ def nmcli_available():
     return rc == 0
 
 
+def networkd_active():
+    _, _, rc = run(["systemctl", "is-active", "--quiet", "systemd-networkd"])
+    return rc == 0
+
+
+def get_primary_iface():
+    """First real Ethernet interface name from sysfs."""
+    for p in sorted(Path("/sys/class/net").iterdir()):
+        t_f = p / "type"; a_f = p / "address"
+        if not t_f.exists() or not a_f.exists(): continue
+        if t_f.read_text().strip() != "1": continue
+        addr = a_f.read_text().strip()
+        if re.match(r"^[0-9a-f]{2}(:[0-9a-f]{2}){5}$", addr) and addr != "00:00:00:00:00:00":
+            return p.name
+    return "eth0"
+
+
 def get_net_info():
-    """Return dict: mode, conn, ip_cidr, gateway, dns, nmcli (bool)."""
-    info = {"mode": "unknown", "conn": "", "ip_cidr": get_ip() + "/24",
-            "gateway": "", "dns": "8.8.8.8", "nmcli": False}
-    if not nmcli_available():
+    """Return dict: nmcli, networkd (bools), mode, iface, ip_cidr, gateway, dns."""
+    iface = get_primary_iface()
+    info  = {"nmcli": False, "networkd": False, "iface": iface,
+             "mode": "dhcp", "ip_cidr": get_ip() + "/24",
+             "gateway": "", "dns": "8.8.8.8"}
+
+    if nmcli_available():
+        info["nmcli"] = True
+        out, _, rc = run(["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show", "--active"])
+        if rc != 0: return info
+        conn = ""
+        for line in out.splitlines():
+            parts = line.split(":")
+            if len(parts) >= 2 and "ethernet" in parts[1].lower():
+                conn = parts[0]; break
+        if not conn: return info
+        info["conn"] = conn
+        out2, _, _ = run(["nmcli", "-t", "-f",
+                          "ipv4.method,ipv4.addresses,ipv4.gateway,ipv4.dns",
+                          "connection", "show", conn])
+        for line in out2.splitlines():
+            k, _, v = line.partition(":")
+            if k == "ipv4.method" and v == "manual": info["mode"] = "static"
+            elif k == "ipv4.addresses" and v: info["ip_cidr"] = v
+            elif k == "ipv4.gateway": info["gateway"] = v
+            elif k == "ipv4.dns" and v: info["dns"] = v.split(",")[0]
         return info
-    info["nmcli"] = True
-    out, _, rc = run(["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show", "--active"])
-    if rc != 0:
+
+    if networkd_active():
+        info["networkd"] = True
+        # Read DPX-managed networkd file if present; otherwise assume DHCP
+        if DPX_NET_FILE.exists():
+            txt = DPX_NET_FILE.read_text()
+            if re.search(r"^\s*DHCP\s*=\s*(yes|ipv4)", txt, re.M | re.I):
+                info["mode"] = "dhcp"
+            else:
+                info["mode"] = "static"
+                m = re.search(r"^\s*Address\s*=\s*(\S+)",  txt, re.M); info["ip_cidr"]  = m.group(1) if m else info["ip_cidr"]
+                m = re.search(r"^\s*Gateway\s*=\s*(\S+)", txt, re.M); info["gateway"] = m.group(1) if m else ""
+                m = re.search(r"^\s*DNS\s*=\s*(\S+)",     txt, re.M); info["dns"]     = m.group(1) if m else "8.8.8.8"
         return info
-    for line in out.splitlines():
-        parts = line.split(":")
-        if len(parts) >= 2 and "ethernet" in parts[1].lower():
-            info["conn"] = parts[0]
-            break
-    if not info["conn"]:
-        return info
-    out2, _, _ = run(["nmcli", "-t", "-f",
-                       "ipv4.method,ipv4.addresses,ipv4.gateway,ipv4.dns",
-                       "connection", "show", info["conn"]])
-    info["mode"] = "dhcp"
-    for line in out2.splitlines():
-        k, _, v = line.partition(":")
-        if k == "ipv4.method" and v == "manual": info["mode"] = "static"
-        elif k == "ipv4.addresses" and v: info["ip_cidr"] = v
-        elif k == "ipv4.gateway": info["gateway"] = v
-        elif k == "ipv4.dns" and v: info["dns"] = v.split(",")[0]
+
     return info
+
+
+def write_networkd_config(iface, mode, ip_cidr=None, gateway=None, dns="8.8.8.8"):
+    """Write /etc/systemd/network/10-dpx-eth.network and reload networkd."""
+    NETWORKD_DIR.mkdir(parents=True, exist_ok=True)
+    if mode == "dhcp":
+        content = f"[Match]\nName={iface}\n\n[Network]\nDHCP=yes\n"
+    else:
+        content = (f"[Match]\nName={iface}\n\n"
+                   f"[Network]\nAddress={ip_cidr}\nGateway={gateway}\nDNS={dns}\n")
+    DPX_NET_FILE.write_text(content)
+    run(["networkctl", "reload"])
 
 
 def get_usb_devices():
@@ -113,6 +160,36 @@ def buttons_reachable():
         return True
     except OSError:
         return False
+
+
+def discover_buttnodes():
+    """Return list of dpx-buttnode instances found via avahi-browse.
+    Requires avahi-daemon running and the _dpx-buttnode._tcp service registered.
+    Each entry: {hostname, addr, port, is_self}
+    """
+    # -p parseable, -t terminate when done, -r resolve addresses
+    out, _, rc = run(["avahi-browse", "-p", "-t", "-r", "_dpx-buttnode._tcp"])
+    if rc != 0:
+        return []
+    me   = get_hostname().lower()
+    seen = set()
+    nodes = []
+    for line in out.splitlines():
+        if not line.startswith("="):
+            continue
+        parts = line.split(";")
+        if len(parts) < 9:
+            continue
+        proto    = parts[2]   # IPv4 / IPv6
+        hostname = parts[6].rstrip(".")
+        addr     = parts[7]
+        port     = parts[8]
+        if proto != "IPv4" or hostname in seen:
+            continue
+        seen.add(hostname)
+        nodes.append({"hostname": hostname, "addr": addr,
+                      "port": port, "is_self": hostname.lower() == me})
+    return sorted(nodes, key=lambda n: (not n["is_self"], n["hostname"]))
 
 
 def validate_hostname(name):
@@ -186,6 +263,7 @@ def page(content, tab="status", alert="", alert_cls="a-ok"):
         ("hostname", "/hostname", "Hostname"),
         ("network",  "/network",  "Network"),
         ("devices",  "/devices",  "Devices"),
+        ("nodes",    "/nodes",    "Nodes"),
     ]
     nav = "".join(
         f'<a href="{u}" class="{"on" if t == tab else ""}">{n}</a>'
@@ -268,67 +346,49 @@ def render_hostname(val="", alert="", alert_cls="a-ok"):
 def render_network(alert="", alert_cls="a-ok"):
     net = get_net_info()
 
-    if not net["nmcli"]:
+    if not net["nmcli"] and not net["networkd"]:
         body = f"""
 <div class="sec"><h2>Network Settings</h2>
   <div class="alert a-warn">
-    <strong>nmcli not available</strong> — this image uses
-    <code>systemd-networkd</code> instead of NetworkManager.<br>
-    Current IP: <code>{esc(net['ip_cidr'])}</code><br>
-    To change network settings, edit
-    <code>/etc/systemd/network/</code> config files via SSH and run
-    <code>networkctl reload</code>.
+    Network manager not detected.<br>
+    Current IP: <code>{esc(net['ip_cidr'])}</code>
   </div>
   <a href="/" class="btn">Back</a>
 </div>"""
         return page(body, "network", alert, alert_cls)
 
-    sv  = "" if net["mode"] == "static" else 'style="display:none"'
+    sv      = "" if net["mode"] == "static" else 'style="display:none"'
+    backend = (f'<p class="note">Using <code>systemd-networkd</code> — '
+               f'writes to <code>{DPX_NET_FILE}</code></p>'
+               if net["networkd"] else "")
     body = f"""
 <div class="sec"><h2>Network Settings</h2>
+  {backend}
   <div class="alert a-warn" style="margin-bottom:14px">
-    ⚠ Do not disable IPv6 — it breaks DHCP on Armbian (known issue).
-    Only IPv4 settings are changed here.
+    ⚠ Do not disable IPv6 — it breaks DHCP on Armbian.
   </div>
   <form method="POST" action="/network">
     <div class="radios">
-      <label>
-        <input type="radio" name="mode" value="dhcp"
+      <label><input type="radio" name="mode" value="dhcp"
                {"checked" if net["mode"] != "static" else ""}
-               onchange="tog(this)"> DHCP (automatic)
-      </label>
-      <label>
-        <input type="radio" name="mode" value="static"
+               onchange="tog(this)"> DHCP (automatic)</label>
+      <label><input type="radio" name="mode" value="static"
                {"checked" if net["mode"] == "static" else ""}
-               onchange="tog(this)"> Static IP
-      </label>
+               onchange="tog(this)"> Static IP</label>
     </div>
     <div id="sf" {sv}>
-      <div class="row">
-        <label>IP address / prefix length (e.g. 192.168.1.100/24)</label>
-        <input type="text" name="ip" value="{esc(net['ip_cidr'])}"
-               placeholder="192.168.1.100/24">
-      </div>
-      <div class="row">
-        <label>Default gateway</label>
-        <input type="text" name="gateway" value="{esc(net['gateway'])}"
-               placeholder="192.168.1.1">
-      </div>
-      <div class="row">
-        <label>DNS server</label>
-        <input type="text" name="dns" value="{esc(net['dns'])}"
-               placeholder="8.8.8.8">
-      </div>
+      <div class="row"><label>IP / prefix (e.g. 192.168.1.100/24)</label>
+        <input type="text" name="ip" value="{esc(net['ip_cidr'])}" placeholder="192.168.1.100/24"></div>
+      <div class="row"><label>Default gateway</label>
+        <input type="text" name="gateway" value="{esc(net['gateway'])}" placeholder="192.168.1.1"></div>
+      <div class="row"><label>DNS server</label>
+        <input type="text" name="dns" value="{esc(net['dns'])}" placeholder="8.8.8.8"></div>
     </div>
     <button type="submit" class="btn btn-p">Apply</button>
     <a href="/" class="btn">Cancel</a>
   </form>
 </div>
-<script>
-function tog(e) {{
-  document.getElementById('sf').style.display = e.value === 'static' ? '' : 'none';
-}}
-</script>"""
+<script>function tog(e){{document.getElementById('sf').style.display=e.value==='static'?'':'none'}}</script>"""
     return page(body, "network", alert, alert_cls)
 
 
@@ -358,6 +418,47 @@ def render_devices(alert="", alert_cls="a-ok"):
   <a href="/" class="btn">Back</a>
 </div>"""
     return page(body, "devices", alert, alert_cls)
+
+
+def render_nodes(alert="", alert_cls="a-ok"):
+    nodes = discover_buttnodes()
+    me    = get_hostname()
+    rows  = ""
+    for n in nodes:
+        self_tag = (
+            ' <span class="badge badge-on" style="font-size:9px;vertical-align:middle">THIS NODE</span>'
+            if n["is_self"] else ""
+        )
+        border = "#1f6feb" if n["is_self"] else "#30363d"
+        action = (
+            '<span style="color:#8b949e;font-size:12px">this device</span>'
+            if n["is_self"] else
+            f'<a href="http://{esc(n["addr"])}:{esc(n["port"])}/" '
+            f'class="btn btn-p" style="font-size:12px" target="_blank">Open UI →</a>'
+        )
+        rows += f"""
+<div style="background:#161b22;border:1px solid {border};border-radius:8px;padding:14px;
+            margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+  <div>
+    <div style="font-weight:700;color:#f0f6ff;margin-bottom:3px">
+      {esc(n['hostname'])}{self_tag}</div>
+    <div style="font-size:12px;color:#8b949e;font-family:ui-monospace,monospace">{esc(n['addr'])}</div>
+  </div>
+  {action}
+</div>"""
+
+    if not rows:
+        rows = '<p class="note">No dpx-buttnodes found on this network.<br>Make sure avahi-daemon is running on all units.</p>'
+
+    body = f"""
+<div class="sec"><h2>Nodes on This Network</h2>
+  {rows}
+  <div style="margin-top:14px">
+    <a href="/nodes" class="btn">↺ Rescan</a>
+    <a href="/" class="btn">Back</a>
+  </div>
+</div>"""
+    return page(body, "nodes", alert, alert_cls)
 
 
 # ── Request handler ────────────────────────────────────────────────────────────
@@ -418,6 +519,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.html(render_network(alert, alert_cls))
         elif path == "/devices":
             self.html(render_devices(alert, alert_cls))
+        elif path == "/nodes":
+            self.html(render_nodes(alert, alert_cls))
         else:
             self.html("<html><body><h1>Not found</h1></body></html>", 404)
 
@@ -472,9 +575,26 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         # ── /network ───────────────────────────────────────────────────────
         elif path == "/network":
+            net  = get_net_info()
             mode = params.get("mode", "dhcp")
 
-            # Find active Ethernet connection name via nmcli
+            if net["networkd"]:
+                iface = net.get("iface", get_primary_iface())
+                if mode == "dhcp":
+                    write_networkd_config(iface, "dhcp")
+                    self.redir("/?ok=network")
+                    return
+                ip_cidr = params.get("ip", "")
+                gw      = params.get("gateway", "")
+                dns     = params.get("dns", "8.8.8.8")
+                if not validate_ip(ip_cidr.split("/")[0]) or not validate_ip(gw):
+                    self.html(render_network("✗ Invalid IP address or gateway", "a-err"))
+                    return
+                write_networkd_config(iface, "static", ip_cidr, gw, dns)
+                self.redir("/?ok=network")
+                return
+
+            # nmcli path
             out, _, _ = run(["nmcli", "-t", "-f", "NAME,TYPE", "connection", "show", "--active"])
             conn = ""
             for line in out.splitlines():
