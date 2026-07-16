@@ -134,10 +134,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check-version.outputs.buttons-version }}
+          FORCE: ${{ github.event.inputs.force || 'false' }}
         run: |
           BUILD_VERSION=$(cat VERSION)
           TAG="buttons-usb-relay-${VERSION}-build${BUILD_VERSION}"
           bash scripts/generate-release-notes.sh "$VERSION" release-assets "$BUILD_VERSION"
+
+          # On force rebuild: replace the existing release for this exact tag
+          if [[ "$FORCE" == "true" ]]; then
+            gh release delete "$TAG" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
+          fi
 
           gh release create "$TAG" \
             --repo "${{ github.repository }}" \
