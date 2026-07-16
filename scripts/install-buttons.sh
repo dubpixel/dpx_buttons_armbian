@@ -108,6 +108,17 @@ cat > /etc/avahi/services/dpx-node-ui.service << 'XML'
 XML
 echo "==> mDNS service registered"
 
+# ── avahi: wait for network-online before starting ────────────────────────────
+# Without this, avahi starts before networkd has assigned a static IP and
+# announces the wrong address (or no address), breaking .local resolution.
+echo "==> Configuring avahi to wait for network-online"
+mkdir -p /etc/systemd/system/avahi-daemon.service.d
+cat > /etc/systemd/system/avahi-daemon.service.d/wait-for-network.conf << 'UNIT'
+[Unit]
+After=network-online.target
+Wants=network-online.target
+UNIT
+
 # ── Clean up ───────────────────────────────────────────────────────────────────
 rm -f "$DEB"
 apt-get clean

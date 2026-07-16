@@ -22,7 +22,8 @@ PORT = 8080
 HOSTNAME_MARKER = "/var/lib/dpx-hostname-set"
 BUTTONS_API    = "http://localhost:3040"
 NETWORKD_DIR   = Path("/etc/systemd/network")
-DPX_NET_FILE   = NETWORKD_DIR / "10-dpx-eth.network"
+DPX_NET_FILE   = NETWORKD_DIR / "05-dpx-eth.network"   # 05- beats Netplan's 10-
+DPX_NET_OLD    = NETWORKD_DIR / "10-dpx-eth.network"   # remove if exists (old name)
 
 # ── System helpers ─────────────────────────────────────────────────────────────
 
@@ -62,6 +63,14 @@ def get_ip():
     return m.group(1) if m else "unknown"
 
 
+def get_ip_cidr():
+    """Return live IP with actual prefix length (e.g. 10.50.0.44/22)."""
+    iface = get_primary_iface()
+    out, _, _ = run(["ip", "-4", "addr", "show", "dev", iface, "scope", "global"])
+    m = re.search(r"inet\s+(\d+\.\d+\.\d+\.\d+/\d+)", out)
+    return m.group(1) if m else get_ip() + "/24"
+
+
 def svc_active(name):
     _, _, rc = run(["systemctl", "is-active", "--quiet", name])
     return rc == 0
@@ -93,7 +102,7 @@ def get_net_info():
     """Return dict: nmcli, networkd (bools), mode, iface, ip_cidr, gateway, dns."""
     iface = get_primary_iface()
     info  = {"nmcli": False, "networkd": False, "iface": iface,
-             "mode": "dhcp", "ip_cidr": get_ip() + "/24",
+             "mode": "dhcp", "ip_cidr": get_ip_cidr(),
              "gateway": "", "dns": "8.8.8.8"}
 
     if nmcli_available():
@@ -121,8 +130,9 @@ def get_net_info():
     if networkd_active():
         info["networkd"] = True
         # Read DPX-managed networkd file if present; otherwise assume DHCP
-        if DPX_NET_FILE.exists():
-            txt = DPX_NET_FILE.read_text()
+        cfg = DPX_NET_FILE if DPX_NET_FILE.exists() else (DPX_NET_OLD if DPX_NET_OLD.exists() else None)
+        if cfg:
+            txt = cfg.read_text()
             if re.search(r"^\s*DHCP\s*=\s*(yes|ipv4)", txt, re.M | re.I):
                 info["mode"] = "dhcp"
             else:
@@ -136,16 +146,30 @@ def get_net_info():
 
 
 def write_networkd_config(iface, mode, ip_cidr=None, gateway=None, dns="8.8.8.8"):
-    """Write /etc/systemd/network/10-dpx-eth.network and reload networkd."""
+    """Write 05-dpx-eth.network and apply immediately. Also restarts avahi + Buttons."""
     NETWORKD_DIR.mkdir(parents=True, exist_ok=True)
+    # Remove old 10- file if present (renamed to 05- for Netplan priority)
+    if DPX_NET_OLD.exists():
+        DPX_NET_OLD.unlink()
     if mode == "dhcp":
         content = f"[Match]\nName={iface}\n\n[Network]\nDHCP=yes\n"
     else:
         content = (f"[Match]\nName={iface}\n\n"
                    f"[Network]\nAddress={ip_cidr}\nGateway={gateway}\nDNS={dns}\n")
     DPX_NET_FILE.write_text(content)
-    run(["networkctl", "reload"])
-    time.sleep(1)  # allow networkd to apply before restarting dependent services
+    # reconfigure targets just this interface (faster + synchronous-ish vs reload)
+    run(["networkctl", "reconfigure", iface])
+    # Wait for IP to be assigned (poll up to 5s)
+    target_ip = ip_cidr.split("/")[0] if ip_cidr else None
+    for _ in range(10):
+        time.sleep(0.5)
+        out, _, _ = run(["ip", "-4", "addr", "show", "dev", iface])
+        if mode == "dhcp" or (target_ip and target_ip in out):
+            break
+    # Re-announce mDNS on the new address
+    run(["systemctl", "reload-or-restart", "avahi-daemon"])
+    time.sleep(0.5)
+    # Reconnect Buttons to the new network
     run(["systemctl", "restart", "bitfocus-buttons-usb-relay"])
 
 
@@ -539,7 +563,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
         alert, alert_cls = "", "a-ok"
         ok_msgs = {
             "hostname":   "✓ Hostname updated — mDNS will reflect the change within a few seconds",
-            "network":    "✓ Network settings applied",
             "restart":    "✓ Buttons service restarted",
             "powercycle": "✓ USB power cycled — deck went dark and is reconnecting",
         }
@@ -548,7 +571,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "invalid": "✗ Invalid input",
         }
         if "ok" in qs:
-            alert = ok_msgs.get(qs["ok"], "✓ Done")
+            if qs["ok"] == "net-dhcp":
+                alert = "✓ Switched to DHCP — IP will be assigned by your router. Buttons service restarted."
+            elif qs["ok"] == "net-static":
+                ip  = esc(qs.get("ip", "unknown"))
+                gw  = esc(qs.get("gw", "unknown"))
+                alert = f"✓ Static IP applied: <code>{ip}</code> via <code>{gw}</code> — Buttons service restarted."
+            else:
+                alert = ok_msgs.get(qs["ok"], "✓ Done")
         elif "err" in qs:
             alert     = err_msgs.get(qs["err"], "✗ An error occurred")
             alert_cls = "a-err"
@@ -621,19 +651,44 @@ class Handler(http.server.BaseHTTPRequestHandler):
             mode = params.get("mode", "dhcp")
 
             if net["networkd"]:
-                iface = net.get("iface", get_primary_iface())
-                if mode == "dhcp":
-                    write_networkd_config(iface, "dhcp")
-                    self.redir("/?ok=network")
-                    return
-                ip_cidr = params.get("ip", "")
-                gw      = params.get("gateway", "")
-                dns     = params.get("dns", "8.8.8.8")
-                if not validate_ip(ip_cidr.split("/")[0]) or not validate_ip(gw):
+                iface   = net.get("iface", get_primary_iface())
+                mode    = params.get("mode", "dhcp")
+                ip_cidr = params.get("ip", "") if mode == "static" else None
+                gw      = params.get("gateway", "") if mode == "static" else None
+                dns     = params.get("dns", "8.8.8.8") if mode == "static" else None
+
+                if mode == "static" and (not validate_ip((ip_cidr or "").split("/")[0]) or not validate_ip(gw or "")):
                     self.html(render_network("✗ Invalid IP address or gateway", "a-err"))
                     return
-                write_networkd_config(iface, "static", ip_cidr, gw, dns)
-                self.redir("/?ok=network")
+
+                # Determine where to redirect AFTER the change takes effect
+                if mode == "dhcp":
+                    redirect = f"/network?ok=net-dhcp"
+                    msg     = "Switching to DHCP — your router will assign an IP."
+                else:
+                    new_ip  = ip_cidr.split("/")[0]
+                    redirect = f"http://{new_ip}:{PORT}/network?ok=net-static&ip={urllib.parse.quote(ip_cidr)}&gw={urllib.parse.quote(gw)}"
+                    msg     = f"Setting static IP to <code>{esc(ip_cidr)}</code> via <code>{esc(gw)}</code>."
+
+                # Send the 'applying' page BEFORE making the disruptive change.
+                # The meta-refresh carries the browser to the new address once networkd is done.
+                applying_html = page(f"""
+<div class="sec"><h2>Applying Network Changes…</h2>
+  <p class="note" style="margin-bottom:10px">{msg}</p>
+  <p class="note">Redirecting in 5 seconds — if it doesn't load,
+    go to <a href="{redirect}">{redirect}</a></p>
+</div>
+<meta http-equiv="refresh" content="5;url={redirect}">""", "network")
+                b = applying_html.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(b)))
+                self.end_headers()
+                self.wfile.write(b)
+                self.wfile.flush()
+
+                # Now apply — browser already has the redirect page
+                write_networkd_config(iface, mode, ip_cidr, gw, dns)
                 return
 
             # nmcli path
@@ -680,7 +735,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
             run(["nmcli", "connection", "up", conn])
             run(["systemctl", "restart", "bitfocus-buttons-usb-relay"])
-            self.redir("/?ok=network")
+            if mode == "dhcp":
+                self.redir("/network?ok=net-dhcp")
+            else:
+                ip_cidr = params.get("ip", "")
+                gw      = params.get("gateway", "")
+                self.redir(f"/network?ok=net-static&ip={urllib.parse.quote(ip_cidr)}&gw={urllib.parse.quote(gw)}")
 
         # ── /power-cycle-deck ──────────────────────────────────────────
         elif path == "/power-cycle-deck":
