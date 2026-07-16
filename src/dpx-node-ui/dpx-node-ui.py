@@ -169,6 +169,12 @@ def write_networkd_config(iface, mode, ip_cidr=None, gateway=None, dns="8.8.8.8"
     RUN_WILDCARD = Path("/run/systemd/network/10-netplan-all-eth-interfaces.network")
 
     if netplan_available():
+        # Clean up any leftover files from previous approaches
+        for stale in [Path("/etc/systemd/network/05-dpx-eth.network"),
+                      Path("/etc/systemd/network/10-dpx-eth.network"),
+                      Path("/etc/systemd/network/10-netplan-all-eth-interfaces.network")]:
+            if stale.exists():
+                stale.unlink()
         if mode == "static":
             DPX_STATIC.parent.mkdir(parents=True, exist_ok=True)
             DPX_STATIC.write_text(
