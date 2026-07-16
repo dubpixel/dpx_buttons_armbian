@@ -24,9 +24,14 @@ BUTTONS_API = "http://localhost:3040"
 # ── System helpers ─────────────────────────────────────────────────────────────
 
 def run(cmd):
-    """Run a command list, return (stdout, stderr, returncode)."""
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    return r.stdout.strip(), r.stderr.strip(), r.returncode
+    """Run a command list, return (stdout, stderr, returncode).
+    Returns ("" , "command not found", 127) if the binary doesn't exist.
+    """
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        return r.stdout.strip(), r.stderr.strip(), r.returncode
+    except FileNotFoundError:
+        return "", f"command not found: {cmd[0]}", 127
 
 
 def get_hostname():
@@ -255,6 +260,22 @@ def render_hostname(val="", alert="", alert_cls="a-ok"):
 
 def render_network(alert="", alert_cls="a-ok"):
     net = get_net_info()
+
+    if not net["nmcli"]:
+        body = f"""
+<div class="sec"><h2>Network Settings</h2>
+  <div class="alert a-warn">
+    <strong>nmcli not available</strong> — this image uses
+    <code>systemd-networkd</code> instead of NetworkManager.<br>
+    Current IP: <code>{esc(net['ip_cidr'])}</code><br>
+    To change network settings, edit
+    <code>/etc/systemd/network/</code> config files via SSH and run
+    <code>networkctl reload</code>.
+  </div>
+  <a href="/" class="btn">Back</a>
+</div>"""
+        return page(body, "network", alert, alert_cls)
+
     sv  = "" if net["mode"] == "static" else 'style="display:none"'
     body = f"""
 <div class="sec"><h2>Network Settings</h2>
