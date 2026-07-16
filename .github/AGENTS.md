@@ -6,7 +6,7 @@ This document provides operational directives for AI coding assistants (GitHub C
 
 ## PROJECT: dpx_buttons_relay_armbian
 
-**Status:** v0.1.0 complete (2026-07-15) ✅  
+**Status:** v0.4.0 complete (2026-07-16) ✅  
 **Branch:** `main`  
 **Version File:** `VERSION` (currently 0.1.0)
 

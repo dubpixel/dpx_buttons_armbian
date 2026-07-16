@@ -15,24 +15,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - 2026-07-16
 
 ### Added
-- **Dynamic hostname (reworked):** `dpx-set-hostname.service` sets hostname to `dpx-buttnode-XXXX`
-  (last 4 hex chars of primary Ethernet MAC, uppercase) on first boot. Placeholder in image is
-  now `dpx-buttnode` instead of `buttons-usb-relay`.
-- **`scripts/dpx-set-hostname.sh`:** Standalone script copied into image by Packer. Reads MAC from
-  `/sys/class/net/<iface>/type` (kernel sysfs — available before any network stack starts, no
-  dependency on `ip link show` or interface being up). Ordered `Before=network.target
-  avahi-daemon.service` so avahi reads the correct hostname on its very first start.
-- **`dpx-node-ui` device config web UI** on port 8080. Pure Python 3 stdlib — zero extra packages.
-  Four tabs: Status (hostname, IP, MAC, service health), Hostname (change + immediate mDNS
-  reload), Network (DHCP ↔ static via `nmcli`), Devices (USB device list + Buttons API
-  identify/blink endpoint). Managed by `dpx-node-ui.service`.
-- `src/dpx-node-ui/dpx-node-ui.py`: web app source, copied into image by Packer.
+- **Dynamic hostname:** `dpx-set-hostname.service` sets hostname to `dpx-buttnode-XXXX` (last 4 hex
+  chars of primary Ethernet MAC, uppercase) on first boot. Reads MAC from `/sys/class/net/<iface>/type`
+  (kernel sysfs, available before network stack starts). Ordered `Before=network.target avahi-daemon.service`
+  so avahi reads the correct hostname on first start.
+- **`dpx-node-ui` web UI** on port 8080 — pure Python 3 stdlib, zero extra packages.
+  Tabs: Status, Hostname, Network, Devices, Nodes.
+  - **Hostname:** `hostnamectl` + `/etc/hosts` + avahi reload
+  - **Network:** DHCP ↔ static. Works on Armbian with Netplan + systemd-networkd.
+    Writes `/etc/systemd/network/09-dpx-<iface>.network` (sorts before Netplan's `10-` wildcard),
+    deletes the conflicting `/run/systemd/network/10-netplan-all-eth-interfaces.network`,
+    then restarts networkd — the only approach that reliably beats Netplan's DHCP wildcard.
+  - **Devices:** USB device list, Stream Deck USB power cycle (unbind/rebind port), Buttons service restart
+  - **Nodes:** `avahi-browse _dpx-buttnode._tcp` discovers all other buttnodes on the LAN with links to their UIs
+- `avahi-daemon.service` drop-in: `After=network-online.target` so mDNS announces on the correct IP after boot
+- `_dpx-buttnode._tcp` mDNS service registration so all units appear in the Nodes tab
 
 ### Fixed
-- Previous dynamic hostname implementation (`41f433a`) used `After=network-pre.target` and parsed
-  `ip link show` with fragile awk — replaced with sysfs read and corrected service ordering.
-- `/etc/hosts` 127.0.1.1 replacement no longer depends on `$CURRENT_HOSTNAME` variable; now uses
-  a direct regex match on the IP.
+- Previous dynamic hostname (`41f433a`) used `After=network-pre.target` + fragile awk — replaced
+- `netplan apply` silently returns rc=1 and deletes override files on this Armbian build — bypassed
+  entirely by writing directly to `/etc/systemd/network/` and restarting networkd
+- Armbian Netplan wildcard `e*` DHCP config alphabetically beats explicit `end0` static config —
+  fixed by using `09-` prefix (sorts before Netplan's `10-`) and removing the `/run/` wildcard
 
 ---
 
