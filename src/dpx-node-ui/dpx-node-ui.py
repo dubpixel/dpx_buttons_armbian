@@ -13,6 +13,7 @@ import os
 import re
 import socket
 import subprocess
+import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -160,6 +161,30 @@ def buttons_reachable():
         return True
     except OSError:
         return False
+
+
+def find_streamdeck_usb_path():
+    """Return sysfs port name (e.g. '1-1.2') for first Elgato Stream Deck (vendor 0fd9)."""
+    for vendor_file in sorted(Path("/sys/bus/usb/devices").glob("*/idVendor")):
+        try:
+            if vendor_file.read_text().strip() == "0fd9":
+                return vendor_file.parent.name
+        except Exception:
+            continue
+    return None
+
+
+def usb_power_cycle(port_path, delay=2):
+    """Unbind then rebind a USB port. Deck goes dark for `delay` seconds."""
+    unbind = Path("/sys/bus/usb/drivers/usb/unbind")
+    bind   = Path("/sys/bus/usb/drivers/usb/bind")
+    try:
+        unbind.write_text(port_path)
+        time.sleep(delay)
+        bind.write_text(port_path)
+        return True, ""
+    except Exception as e:
+        return False, str(e)
 
 
 def discover_buttnodes():
@@ -395,10 +420,16 @@ def render_network(alert="", alert_cls="a-ok"):
 def render_devices(alert="", alert_cls="a-ok"):
     usb    = get_usb_devices()
     api_ok = buttons_reachable()
+    deck   = find_streamdeck_usb_path()
     badge  = (
         '<span class="badge badge-on">● listening on :3040</span>'
         if api_ok else
         '<span class="badge badge-off">○ not reachable on :3040</span>'
+    )
+    deck_info = (
+        f'Found at USB port <code>{esc(deck)}</code>'
+        if deck else
+        'No Elgato Stream Deck detected on USB'
     )
     body = f"""
 <div class="sec"><h2>Connected USB Devices</h2>
@@ -406,11 +437,19 @@ def render_devices(alert="", alert_cls="a-ok"):
     {''.join(f'<li>{esc(d)}</li>' for d in usb) if usb else '<li style="color:#8b949e">No USB devices detected</li>'}
   </ul>
 </div>
+<div class="sec"><h2>Stream Deck</h2>
+  <p class="note">{deck_info}</p>
+  <p class="note" style="margin-bottom:14px">
+    Power cycles the USB port — deck goes dark for ~2 seconds then reconnects.
+  </p>
+  <form method="POST" action="/power-cycle-deck" style="display:inline">
+    <button type="submit" class="btn btn-p" {'disabled' if not deck else ''}>&#9211; Power Cycle Deck</button>
+  </form>
+</div>
 <div class="sec"><h2>Buttons Service</h2>
   <p class="note">
     bitfocus-buttons-usb-relay {badge}<br>
-    Restart the service to reset the Stream Deck connection
-    (useful if the deck is unresponsive or showing the wrong page).
+    Restart the service to reset the relay process (does not power cycle the deck).
   </p>
   <form method="POST" action="/restart-buttons" style="display:inline">
     <button type="submit" class="btn btn-w">↺ Restart Buttons</button>
@@ -497,9 +536,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # Resolve alert from redirect query string
         alert, alert_cls = "", "a-ok"
         ok_msgs = {
-            "hostname": "✓ Hostname updated — mDNS will reflect the change within a few seconds",
-            "network":  "✓ Network settings applied",
-            "restart":  "✓ Buttons service restarted",
+            "hostname":   "✓ Hostname updated — mDNS will reflect the change within a few seconds",
+            "network":    "✓ Network settings applied",
+            "restart":    "✓ Buttons service restarted",
+            "powercycle": "✓ USB power cycled — deck went dark and is reconnecting",
         }
         err_msgs = {
             "api":     "✗ Buttons API did not respond — is bitfocus-buttons-usb-relay running?",
@@ -638,6 +678,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
             run(["nmcli", "connection", "up", conn])
             self.redir("/?ok=network")
+
+        # ── /power-cycle-deck ──────────────────────────────────────────
+        elif path == "/power-cycle-deck":
+            deck = find_streamdeck_usb_path()
+            if not deck:
+                self.html(render_devices(alert="✗ No Stream Deck found on USB", alert_cls="a-err"))
+                return
+            ok, err = usb_power_cycle(deck)
+            if not ok:
+                self.html(render_devices(alert=f"✗ USB power cycle failed: {esc(err)}", alert_cls="a-err"))
+                return
+            self.redir("/devices?ok=powercycle")
 
         # ── /restart-buttons ───────────────────────────────────────────────
         elif path == "/restart-buttons":
