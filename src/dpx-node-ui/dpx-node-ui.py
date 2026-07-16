@@ -181,6 +181,7 @@ def write_networkd_config(iface, mode, ip_cidr=None, gateway=None, dns="8.8.8.8"
                        f"      routes:\n        - to: default\n          via: {gateway}\n"
                        f"      nameservers:\n        addresses: [{dns}]\n")
         DPX_NETPLAN.write_text(content)
+        DPX_NETPLAN.chmod(0o600)  # netplan requires restricted permissions
         run(["netplan", "apply"])
     else:
         # Raw networkd fallback for boards without Netplan
