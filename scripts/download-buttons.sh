@@ -18,12 +18,23 @@ mkdir -p "$ARTIFACTS_DIR"
 
 echo "==> Fetching package from mirror release: ${MIRROR_TAG}"
 
-# Download the .tar.gz asset from the mirror release
-gh release download "$MIRROR_TAG" \
-    --repo "${GITHUB_REPOSITORY}" \
-    --pattern "*.tar.gz" \
-    --dir "$ARTIFACTS_DIR" \
-    --clobber
+# Download with retry — GitHub API can return transient 503s
+for attempt in 1 2 3 4 5; do
+    echo "==> Download attempt ${attempt}/5"
+    if gh release download "$MIRROR_TAG" \
+        --repo "${GITHUB_REPOSITORY}" \
+        --pattern "*.tar.gz" \
+        --dir "$ARTIFACTS_DIR" \
+        --clobber; then
+        break
+    fi
+    if [[ $attempt -eq 5 ]]; then
+        echo "ERROR: Failed to download after 5 attempts"
+        exit 1
+    fi
+    echo "==> Retrying in 15s..."
+    sleep 15
+done
 
 TARBALL=$(ls "$ARTIFACTS_DIR"/*.tar.gz | head -1)
 echo "==> Downloaded: $(basename "$TARBALL") ($(du -sh "$TARBALL" | cut -f1))"
