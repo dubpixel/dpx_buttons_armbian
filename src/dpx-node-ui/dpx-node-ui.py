@@ -176,10 +176,20 @@ def write_networkd_config(iface, mode, ip_cidr=None, gateway=None, dns="8.8.8.8"
                 f"[Match]\nName={iface}\n\n"
                 f"[Network]\nAddress={ip_cidr}\nGateway={gateway}\nDNS={dns}\n"
             )
-        # Flush stale addresses from previous config before applying
-        if mode == "dhcp":
-            run(["ip", "addr", "flush", "dev", iface])
-        run(["networkctl", "reconfigure", iface])
+        # Remove any Netplan-generated /run/ files that conflict with our config.
+        # Netplan writes static configs to /run/systemd/network/ — they must be
+        # removed before restarting networkd or they'll override our /etc/ file.
+        run_net = Path("/run/systemd/network")
+        if run_net.exists():
+            for f in run_net.glob("*.network"):
+                try:
+                    txt = f.read_text()
+                    if f"Name={iface}" in txt and "Address=" in txt:
+                        f.unlink()
+                except Exception:
+                    pass
+        # Restart networkd so it re-reads all config from scratch
+        run(["systemctl", "restart", "systemd-networkd"])
     else:
         # Raw networkd fallback for boards without Netplan
         NETWORKD_DIR.mkdir(parents=True, exist_ok=True)
