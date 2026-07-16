@@ -144,33 +144,19 @@ def get_net_info():
 
     if networkd_active():
         info["networkd"] = True
-        # No override file = DHCP (Armbian default takes over)
-        # Override file present = read it for mode/config
-        if DPX_NETPLAN.exists():
-            txt = DPX_NETPLAN.read_text()
-            if re.search(r"dhcp4:\s*true", txt):
-                info["mode"] = "dhcp"
-            else:
-                info["mode"] = "static"
-                m = re.search(r"-\s+(\d+\.\d+\.\d+\.\d+/\d+)", txt)
-                if m: info["ip_cidr"] = m.group(1)
-                m = re.search(r"via:\s+(\S+)", txt)
-                if m: info["gateway"] = m.group(1)
-                m = re.search(r"addresses:\s*\[(\S+)\]", txt)
-                if m: info["dns"] = m.group(1).rstrip(",]")
-        else:
-            # No override — Armbian default DHCP is active
+        # Read mode from the live interface — "dynamic" = DHCP lease, no "dynamic" = static
+        iface_out, _, _ = run(["ip", "-4", "addr", "show", "dev", iface])
+        if "dynamic" in iface_out:
             info["mode"] = "dhcp"
-        # Fall back to raw networkd DPX file if Netplan override absent
-        if info["mode"] == "dhcp" and not DPX_NETPLAN.exists():
-            cfg = DPX_NET_FILE if DPX_NET_FILE.exists() else (DPX_NET_OLD if DPX_NET_OLD.exists() else None)
-            if cfg:
-                txt = cfg.read_text()
-                if not re.search(r"^\s*DHCP\s*=\s*(yes|ipv4)", txt, re.M | re.I):
-                    info["mode"] = "static"
-                    m = re.search(r"^\s*Address\s*=\s*(\S+)",  txt, re.M); info["ip_cidr"]  = m.group(1) if m else info["ip_cidr"]
-                    m = re.search(r"^\s*Gateway\s*=\s*(\S+)", txt, re.M); info["gateway"] = m.group(1) if m else info["gateway"]
-                    m = re.search(r"^\s*DNS\s*=\s*(\S+)",     txt, re.M); info["dns"]     = m.group(1) if m else "8.8.8.8"
+        elif re.search(r"inet\s+\d", iface_out):
+            info["mode"] = "static"
+        # For static: read configured values from our override file if present
+        if info["mode"] == "static" and DPX_NETPLAN.exists():
+            txt = DPX_NETPLAN.read_text()
+            m = re.search(r"-\s+(\d+\.\d+\.\d+\.\d+/\d+)", txt)
+            if m: info["ip_cidr"] = m.group(1)
+            m = re.search(r"via:\s+(\S+)", txt)
+            if m: info["gateway"] = m.group(1)
         return info
 
     return info
@@ -179,21 +165,19 @@ def get_net_info():
 def write_networkd_config(iface, mode, ip_cidr=None, gateway=None, dns="8.8.8.8"):
     """Apply network config. Uses Netplan if available (Armbian), raw networkd otherwise."""
     if netplan_available():
-        # DHCP: delete our override so Armbian's default DHCP config takes over
-        # Static: write 99-dpx-override.yaml which wins over the Armbian wildcard
+        # Write directly to /etc/systemd/network/ using the SAME filename Netplan
+        # generates in /run/systemd/network/. /etc/ always beats /run/ in networkd.
+        # This bypasses netplan apply entirely (which fails rc=1 with our override).
+        ETC_NET = Path("/etc/systemd/network/10-netplan-all-eth-interfaces.network")
+        ETC_NET.parent.mkdir(parents=True, exist_ok=True)
         if mode == "dhcp":
-            if DPX_NETPLAN.exists():
-                DPX_NETPLAN.unlink()
+            ETC_NET.write_text(f"[Match]\nName={iface}\n\n[Network]\nDHCP=yes\n")
         else:
-            NETPLAN_DIR.mkdir(parents=True, exist_ok=True)
-            content = (f"network:\n  version: 2\n  ethernets:\n    {iface}:\n"
-                       f"      dhcp4: false\n      dhcp6: false\n"
-                       f"      addresses:\n        - {ip_cidr}\n"
-                       f"      routes:\n        - to: default\n          via: {gateway}\n"
-                       f"      nameservers:\n        addresses: [{dns}]\n")
-            DPX_NETPLAN.write_text(content)
-            DPX_NETPLAN.chmod(0o600)
-        run(["netplan", "apply"])
+            ETC_NET.write_text(
+                f"[Match]\nName={iface}\n\n"
+                f"[Network]\nAddress={ip_cidr}\nGateway={gateway}\nDNS={dns}\n"
+            )
+        run(["networkctl", "reconfigure", iface])
     else:
         # Raw networkd fallback for boards without Netplan
         NETWORKD_DIR.mkdir(parents=True, exist_ok=True)
@@ -218,6 +202,10 @@ def write_networkd_config(iface, mode, ip_cidr=None, gateway=None, dns="8.8.8.8"
     time.sleep(0.5)
     # Reconnect Buttons
     run(["systemctl", "restart", "bitfocus-buttons-usb-relay"])
+    # Restart ourselves — the server socket breaks when the IP changes.
+    # Use systemd-run so this continues after our process exits.
+    run(["systemd-run", "--no-block", "--quiet",
+         "systemctl", "restart", "dpx-node-ui"])
 
 
 def get_usb_devices():
