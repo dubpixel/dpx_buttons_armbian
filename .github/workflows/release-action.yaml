@@ -64,7 +64,8 @@ jobs:
           FORCE: ${{ github.event.inputs.force || 'false' }}
         run: |
           MIRROR_VERSION="${{ steps.mirror.outputs.buttons-version }}"
-          EXPECTED_TAG="buttons-usb-relay-${MIRROR_VERSION}"
+          BUILD_VERSION=$(cat VERSION 2>/dev/null || echo "unknown")
+          EXPECTED_TAG="buttons-usb-relay-${MIRROR_VERSION}-build${BUILD_VERSION}"
 
           LATEST_TAG=$(gh release list \
             --repo "${{ github.repository }}" \
@@ -134,15 +135,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.check-version.outputs.buttons-version }}
         run: |
-          TAG="buttons-usb-relay-${VERSION}"
           BUILD_VERSION=$(cat VERSION)
+          TAG="buttons-usb-relay-${VERSION}-build${BUILD_VERSION}"
           bash scripts/generate-release-notes.sh "$VERSION" release-assets "$BUILD_VERSION"
-
-          # Delete existing release with this tag if present (handles force rebuilds)
-          gh release delete "$TAG" --repo "${{ github.repository }}" --yes --cleanup-tag 2>/dev/null || true
 
           gh release create "$TAG" \
             --repo "${{ github.repository }}" \
-            --title "Buttons USB Relay ${VERSION}" \
+            --title "Buttons USB Relay ${VERSION} (build ${BUILD_VERSION})" \
             --notes-file /tmp/release-notes.md \
             release-assets/*.img.gz
