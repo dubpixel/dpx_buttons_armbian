@@ -97,8 +97,7 @@ def networkd_active():
 
 
 def netplan_available():
-    _, _, rc = run(["netplan", "version"])
-    return rc == 0
+    return Path("/usr/sbin/netplan").exists() or Path("/usr/bin/netplan").exists()
 
 
 def get_primary_iface():
@@ -177,6 +176,9 @@ def write_networkd_config(iface, mode, ip_cidr=None, gateway=None, dns="8.8.8.8"
                 f"[Match]\nName={iface}\n\n"
                 f"[Network]\nAddress={ip_cidr}\nGateway={gateway}\nDNS={dns}\n"
             )
+        # Flush stale addresses from previous config before applying
+        if mode == "dhcp":
+            run(["ip", "addr", "flush", "dev", iface])
         run(["networkctl", "reconfigure", iface])
     else:
         # Raw networkd fallback for boards without Netplan
