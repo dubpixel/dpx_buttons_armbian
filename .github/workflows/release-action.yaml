@@ -104,8 +104,6 @@ jobs:
     uses: ./.github/workflows/armbian-builder.yaml
     with:
       armbian-board: ${{ matrix.board }}
-    secrets:
-      ROOT_PASSWORD: ${{ secrets.ROOT_PASSWORD }}
     permissions:
       contents: read
 
