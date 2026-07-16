@@ -65,6 +65,13 @@ def get_ip():
     return m.group(1) if m else "unknown"
 
 
+def get_gateway():
+    """Return current default gateway from the live routing table."""
+    out, _, _ = run(["ip", "-4", "route", "show", "default"])
+    m = re.search(r"via\s+(\d+\.\d+\.\d+\.\d+)", out)
+    return m.group(1) if m else ""
+
+
 def get_ip_cidr():
     """Return live IP with actual prefix length (e.g. 10.50.0.44/22)."""
     iface = get_primary_iface()
@@ -110,7 +117,7 @@ def get_net_info():
     iface = get_primary_iface()
     info  = {"nmcli": False, "networkd": False, "iface": iface,
              "mode": "dhcp", "ip_cidr": get_ip_cidr(),
-             "gateway": "", "dns": "8.8.8.8"}
+             "gateway": get_gateway(), "dns": "8.8.8.8"}
 
     if nmcli_available():
         info["nmcli"] = True
