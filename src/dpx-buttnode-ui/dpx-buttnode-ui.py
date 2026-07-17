@@ -351,7 +351,7 @@ a{color:#388bfd;text-decoration:none}
 .nav a{display:inline-block;padding:10px 14px;font-size:13px;color:#8b949e;border-bottom:2px solid transparent;white-space:nowrap}
 .nav a.on,.nav a:hover{color:#f0f6ff;border-bottom-color:#1f6feb}
 .wrap{max-width:880px;margin:0 auto;padding:24px 16px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;margin-bottom:20px}
 .card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px}
 .lbl{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
 .val{font-size:17px;font-weight:700;color:#f0f6ff;font-family:ui-monospace,monospace;word-break:break-all}
@@ -454,8 +454,8 @@ def render_status(alert="", alert_cls="a-ok"):
 
     grid = f"""
 <div class="grid">
-  <div class="card"><div class="lbl">Hostname</div>
-    <div class="val" style="font-size:13px">{host}</div></div>
+  <div class="card" style="grid-column:span 2"><div class="lbl">Hostname</div>
+    <div class="val" style="font-size:15px">{host}</div></div>
   <div class="card"><div class="lbl">IP Address</div>
     <div class="val">{ip}</div></div>
   <div class="card"><div class="lbl">MAC</div>
