@@ -350,6 +350,10 @@ jobs:
             -var "url=build/output/images/armbian.img" \
             -var "build=$(cat artifacts/buttons-version.txt)" \
             -var "deb_path=artifacts/bitfocus-buttons-usb-relay-headless.deb" \
+            -var "dpx_version=$(cat VERSION)" \
+            -var "git_branch=${{ github.ref_name }}" \
+            -var "git_commit=$(echo '${{ github.sha }}' | cut -c1-7)" \
+            -var "build_date=$(date -u +%Y-%m-%d)" \
             dpx-buttnode.pkr.hcl
 
       # ── Compress and upload ────────────────────────────────────────────────

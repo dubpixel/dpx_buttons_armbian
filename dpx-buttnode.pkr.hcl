@@ -23,6 +23,30 @@ variable "deb_path" {
   description = "Local path to the downloaded .deb package, relative to the build root"
 }
 
+variable "dpx_version" {
+  type    = string
+  default = "dev"
+  description = "dpx-buttnode project version (from VERSION file)"
+}
+
+variable "git_branch" {
+  type    = string
+  default = "local"
+  description = "Git branch this image was built from"
+}
+
+variable "git_commit" {
+  type    = string
+  default = "unknown"
+  description = "Short git commit SHA"
+}
+
+variable "build_date" {
+  type    = string
+  default = "unknown"
+  description = "ISO date this image was built (UTC)"
+}
+
 source "arm-image" "armbian" {
   iso_checksum    = "none"
   iso_url         = var.url
@@ -81,6 +105,13 @@ build {
       # SSH enabled for remote access and debugging
       # Login: root / 1234  (Armbian forces a password change on first login)
       "systemctl enable ssh || true",
+
+      # Write build metadata — readable by dpx-buttnode-ui Status page
+      "echo 'DPX_VERSION=${var.dpx_version}' > /etc/dpx-buttnode-release",
+      "echo 'BUTTONS_VERSION=${var.build}' >> /etc/dpx-buttnode-release",
+      "echo 'GIT_BRANCH=${var.git_branch}' >> /etc/dpx-buttnode-release",
+      "echo 'GIT_COMMIT=${var.git_commit}' >> /etc/dpx-buttnode-release",
+      "echo 'BUILD_DATE=${var.build_date}' >> /etc/dpx-buttnode-release",
     ]
   }
 

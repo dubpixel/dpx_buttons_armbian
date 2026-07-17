@@ -136,7 +136,10 @@ jobs:
         run: |
           BUILD_VERSION=$(cat VERSION)
           TAG="dpx-buttnode-${VERSION}-build${BUILD_VERSION}"
-          bash scripts/generate-release-notes.sh "$VERSION" release-assets "$BUILD_VERSION"
+          SAT_VERSION=$(node -e "console.log(require('/opt/companion-satellite/package.json').version)" 2>/dev/null || echo "unknown")
+          bash scripts/generate-release-notes.sh \
+            "$VERSION" release-assets "$BUILD_VERSION" \
+            "${{ github.ref_name }}" "$(echo '${{ github.sha }}' | cut -c1-7)" "$SAT_VERSION"
 
           # On force rebuild: replace the existing release for this exact tag
           if [[ "$FORCE" == "true" ]]; then

@@ -46,6 +46,12 @@ echo "==> satellite user added to 'buttons' group (HID device access)"
 echo "buttons" > /etc/dpx-mode
 echo "==> /etc/dpx-mode: buttons (default)"
 
+# ── Record satellite version in build metadata ────────────────────────────────
+SAT_VERSION=$(/opt/fnm/aliases/default/bin/node -e \
+  "console.log(require('/opt/companion-satellite/package.json').version)" 2>/dev/null || echo "unknown")
+echo "SATELLITE_VERSION=${SAT_VERSION}" >> /etc/dpx-buttnode-release
+echo "==> Satellite version: ${SAT_VERSION}"
+
 # ── Verify install ────────────────────────────────────────────────────────────
 if [ -d "/opt/companion-satellite" ]; then
     echo "==> Companion Satellite: OK (/opt/companion-satellite exists)"

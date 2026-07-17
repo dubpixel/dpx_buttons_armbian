@@ -86,7 +86,10 @@ jobs:
           VERSION: ${{ steps.meta.outputs.buttons-version }}
           BUILD_VERSION: ${{ steps.meta.outputs.build-version }}
         run: |
-          bash scripts/generate-release-notes.sh "$VERSION" release-assets "$BUILD_VERSION"
+          SAT_VERSION=$(node -e "console.log(require('/opt/companion-satellite/package.json').version)" 2>/dev/null || echo "unknown")
+          bash scripts/generate-release-notes.sh \
+            "$VERSION" release-assets "$BUILD_VERSION" \
+            "${{ github.ref_name }}" "$(echo '${{ github.sha }}' | cut -c1-7)" "$SAT_VERSION"
 
       - name: Create GitHub Release
         env:

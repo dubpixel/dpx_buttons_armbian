@@ -8,9 +8,12 @@
 
 set -euo pipefail
 
-VERSION="${1:?Usage: $0 <buttons-version> <assets-dir> [build-version]}"
-ASSETS_DIR="${2:?Usage: $0 <buttons-version> <assets-dir> [build-version]}"
+VERSION="${1:?Usage: $0 <buttons-version> <assets-dir> [build-version] [git-branch] [git-commit] [satellite-version]}"
+ASSETS_DIR="${2:?Usage: $0 <buttons-version> <assets-dir> [build-version] [git-branch] [git-commit] [satellite-version]}"
 BUILD_VERSION="${3:-$(cat VERSION 2>/dev/null || echo 'unknown')}"
+GIT_BRANCH="${4:-unknown}"
+GIT_COMMIT="${5:-unknown}"
+SAT_VERSION="${6:-unknown}"
 OUT="/tmp/release-notes.md"
 
 # Build board list from .img.gz filenames
@@ -26,8 +29,14 @@ done
 cat > "$OUT" << ENDOFNOTES
 ## Bitfocus Buttons USB Relay ${VERSION} — Pipeline v${BUILD_VERSION}
 
-Flash-ready Armbian images with [Bitfocus Buttons USB Relay](https://bitfocus.io/buttons) (headless) pre-installed.
-Plug in your Stream Deck, power on — the relay is already running.
+Flash-ready Armbian images with [Bitfocus Buttons USB Relay](https://bitfocus.io/buttons) (headless) **and** [Companion Satellite](https://github.com/bitfocus/companion-satellite) pre-installed. Switch between modes from the browser — no re-flash needed.
+
+| Component | Version |
+|---|---|
+| dpx-buttnode pipeline | \`${BUILD_VERSION}\` |
+| Buttons USB Relay | \`${VERSION}\` |
+| Companion Satellite | \`${SAT_VERSION}\` |
+| Built from | \`${GIT_BRANCH}@${GIT_COMMIT}\` |
 
 ### Boards included
 ${BOARD_LIST}

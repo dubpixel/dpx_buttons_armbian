@@ -402,6 +402,7 @@ def render_status(alert="", alert_cls="a-ok"):
     usb     = get_usb_devices()
     mode    = get_dpx_mode()
     ss      = svc_active("satellite")
+    bld     = get_build_info()
 
     # Mode card: label + active service indicator + companion target if satellite
     if mode == "satellite":
@@ -430,6 +431,15 @@ def render_status(alert="", alert_cls="a-ok"):
 {mode_card}
   <div class="card"><div class="lbl">mDNS</div>
     <div class="val {'on' if av else 'off'}">{'active' if av else 'inactive'}</div></div>
+</div>
+<div class="sec" style="margin-top:12px">
+  <div style="font-size:11px;color:#8b949e;font-family:monospace;line-height:1.8">
+    dpx-buttnode v{esc(bld['dpx_version'])} &nbsp;|&nbsp;
+    buttons {esc(bld['buttons_version'])} &nbsp;|&nbsp;
+    satellite {esc(bld['satellite_version'])} &nbsp;|&nbsp;
+    {esc(bld['git_branch'])}@{esc(bld['git_commit'])} &nbsp;|&nbsp;
+    built {esc(bld['build_date'])}
+  </div>
 </div>
 <div class="sec"><h2>USB Devices</h2>
   <ul class="usb">
@@ -603,6 +613,29 @@ def get_dpx_mode():
         return MODE_FILE.read_text().strip()
     except Exception:
         return "buttons"
+
+
+RELEASE_FILE = Path("/etc/dpx-buttnode-release")
+
+def get_build_info():
+    """Return dict of build metadata from /etc/dpx-buttnode-release.
+    Keys: dpx_version, buttons_version, git_branch, git_commit, build_date.
+    Falls back to 'unknown' for any missing key.
+    """
+    info = {"dpx_version": "unknown", "buttons_version": "unknown",
+            "satellite_version": "unknown",
+            "git_branch": "unknown", "git_commit": "unknown", "build_date": "unknown"}
+    try:
+        for line in RELEASE_FILE.read_text().splitlines():
+            line = line.strip()
+            if "=" in line:
+                k, _, v = line.partition("=")
+                key = k.strip().lower()
+                if key in info:
+                    info[key] = v.strip()
+    except Exception:
+        pass
+    return info
 
 
 def get_satellite_config():
