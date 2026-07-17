@@ -41,11 +41,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Stream Decks are accessible when in satellite mode (udev owns `/dev/hidraw*` as `root:buttons`)
 - **Comprehensive README:** added Satellite mode usage section, Mode tab screenshots, terminal
   mode-switch commands, Companion configuration instructions
+- **Favicon:** `images/fav_icon.png` served at `/favicon.png` and `/favicon.ico` on port 8080;
+  provisioned into image via Packer; installed to `/usr/local/bin/fav_icon.png`
+- **Build metadata baked into image:** Packer writes `/etc/dpx-buttnode-release` containing
+  `DPX_VERSION`, `BUTTONS_VERSION`, `SATELLITE_VERSION`, `GIT_BRANCH`, `GIT_COMMIT`, `BUILD_DATE`;
+  `install-satellite.sh` appends `SATELLITE_VERSION` after build
+- **Build info footer in web UI:** every page shows a slim footer bar:
+  `dpx-buttnode v{ver} · buttons {ver} · satellite {ver} · {branch}@{commit} · built {date}`
+- **Build info in release notes:** GitHub Release body includes a versions table
+  (dpx-buttnode, Buttons, Satellite, branch@commit)
 
 ### Changed
-- Artifact filename format: `{board}-dpx-buttnode-{version}-build{N}.img.gz`
-  (was `{board}-buttons-usb-relay-{version}-build{N}.img.gz`)
-- Release tag format: `dpx-buttnode-{version}-build{N}` (was `buttons-usb-relay-...`)
+- Artifact filename format: `{board}-dpx-buttnode-{dpx_version}-{branch}-{commit}.img.gz`
+  (branch + commit SHA appended; Buttons version removed from filename — it's in the UI footer and release notes)
+- Release title format: `dpx-buttnode v{dpx_version} — Buttons {buttons_version}`
+  (was `dpx-buttnode {buttons_version} (build {dpx_version})`)
+- Satellite `package.json` path corrected to `/opt/companion-satellite/satellite/package.json`
 
 ---
 
