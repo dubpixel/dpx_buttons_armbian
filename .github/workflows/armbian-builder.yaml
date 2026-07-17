@@ -303,7 +303,7 @@ jobs:
           BOARD="${CUSTOM:-$SELECTED}"
           BRANCH=$(echo "${{ github.ref_name }}" | sed 's|/|-|g')
           COMMIT=$(echo "${{ github.sha }}" | cut -c1-7)
-          ARTIFACT_NAME="${BOARD}-dpx-buttnode-${VERSION}-build${BUILD_VERSION}-${BRANCH}-${COMMIT}"
+          ARTIFACT_NAME="${BOARD}-dpx-buttnode-${BUILD_VERSION}-${BRANCH}-${COMMIT}"
           echo "buttons-version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "artifact-name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
           echo "board=${BOARD}" >> "$GITHUB_OUTPUT"
@@ -374,7 +374,7 @@ jobs:
           BOARD="${CUSTOM:-$SELECTED}"
           BRANCH=$(echo "${{ github.ref_name }}" | sed 's|/|-|g')
           COMMIT=$(echo "${{ github.sha }}" | cut -c1-7)
-          FINAL_NAME="${BOARD}-dpx-buttnode-${VERSION}-build${BUILD_VERSION}-${BRANCH}-${COMMIT}.img"
+          FINAL_NAME="${BOARD}-dpx-buttnode-${BUILD_VERSION}-${BRANCH}-${COMMIT}.img"
 
           LOOP=$(sudo losetup -fP --show "$IMG")
           ROOT_PART="${LOOP}p1"
