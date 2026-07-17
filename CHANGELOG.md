@@ -12,6 +12,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-07-16
+
+### Added
+- **Project rename:** `dpx_buttons_relay_armbian` → **`dpx-buttnode`** — repo name, artifact names,
+  release tags, workflow names, and all OUR identifiers updated. Bitfocus package names unchanged.
+- **`dpx-node-ui` → `dpx-buttnode-ui`:** service, binary path, web page title, and avahi XML
+  file renamed. mDNS service type `_dpx-buttnode._tcp` unchanged.
+- **Companion Satellite A/B mode:** Companion Satellite (headless) is now installed alongside
+  Buttons USB Relay. Both are installed at image build time; only one runs at a time.
+  - Default mode on first flash: **Buttons USB Relay** (satellite installed but disabled)
+  - `scripts/install-satellite.sh` — installs Companion Satellite using the official install
+    script (`pi-image/install.sh`) inside the Packer chroot; leaves `satellite.service` disabled
+  - `dpx-buttnode.pkr.hcl` — two new provisioners: copy + run `install-satellite.sh`
+  - Mode persistence: `/etc/dpx-mode` stores `buttons` or `satellite` across reboots
+  - Mode switching via `systemctl enable/disable` on each service
+- **Mode tab in `dpx-buttnode-ui`:** new "Mode" tab in the web UI for A/B switching
+  - Large mode badge (A — Buttons USB Relay / B — Companion Satellite)
+  - Service status chips for both `bitfocus-buttons-usb-relay` and `satellite`
+  - Switch button: stops+disables current service, enables+starts the other
+  - Companion server config form: Host + Port (default 16622), saved to
+    `/etc/dpx-satellite.conf` and `/boot/satellite-config`; POSTs to satellite REST API
+    (`http://localhost:9999/api/config`) if satellite is currently running
+
+### Changed
+- Artifact filename format: `{board}-dpx-buttnode-{version}-build{N}.img.gz`
+  (was `{board}-buttons-usb-relay-{version}-build{N}.img.gz`)
+- Release tag format: `dpx-buttnode-{version}-build{N}` (was `buttons-usb-relay-...`)
+
+---
+
 ## [0.4.0] - 2026-07-16
 
 ### Added
@@ -19,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   chars of primary Ethernet MAC, uppercase) on first boot. Reads MAC from `/sys/class/net/<iface>/type`
   (kernel sysfs, available before network stack starts). Ordered `Before=network.target avahi-daemon.service`
   so avahi reads the correct hostname on first start.
-- **`dpx-node-ui` web UI** on port 8080 — pure Python 3 stdlib, zero extra packages.
+- **`dpx-buttnode-ui` web UI** on port 8080 — pure Python 3 stdlib, zero extra packages.
   Tabs: Status, Hostname, Network, Devices, Nodes.
   - **Hostname:** `hostnamectl` + `/etc/hosts` + avahi reload
   - **Network:** DHCP ↔ static. Works on Armbian with Netplan + systemd-networkd.
@@ -49,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ROOT_PASSWORD` secret properly chained through `workflow_call` to Packer build
 - `custom-board` free-text input on `armbian-builder.yaml` — build any board not in dropdown
 - `publish-release.yaml` workflow — re-publish a release from existing build artifacts without recompiling
-- Release tags now include pipeline version: `buttons-usb-relay-X.Y.Z-buildA.B.C`
+- Release tags now include pipeline version: `dpx-buttnode-X.Y.Z-buildA.B.C`
 - `force=true` on release workflow deletes and recreates the same tag; normal runs never overwrite
 - Orange Pi Zero 3 added to release matrix
 - Full 150+ Armbian board list in manual dispatch dropdown
@@ -89,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/upload-mirror.sh` — one-command helper to upload new Bitfocus packages to the mirror release
 - `scripts/download-buttons.sh` — downloads package from mirror release using built-in `GITHUB_TOKEN`
 - `scripts/install-buttons.sh` — installs `.deb` inside Armbian chroot, enables `avahi-daemon` for mDNS discovery
-- `buttons-usb-relay.pkr.hcl` — Packer build definition targeting ARM64 Armbian images
+- `dpx-buttnode.pkr.hcl` — Packer build definition targeting ARM64 Armbian images
 - Initial support for Bitfocus Buttons USB Relay Headless v0.1.0-beta.4
 
 ---

@@ -27,7 +27,7 @@ source "arm-image" "armbian" {
   iso_checksum    = "none"
   iso_url         = var.url
   target_image_size = 5000000000
-  output_filename = "output-buttonspi/armbian-buttons-usb-relay.img"
+  output_filename = "output-dpx-buttnode/armbian-dpx-buttnode.img"
   qemu_binary     = "qemu-aarch64-static"
   image_mounts    = ["/"]
 
@@ -58,8 +58,8 @@ build {
 
   # Copy the device config web UI (installed to /usr/local/bin by install-buttons.sh)
   provisioner "file" {
-    source      = "src/dpx-node-ui/dpx-node-ui.py"
-    destination = "/tmp/dpx-node-ui.py"
+    source      = "src/dpx-buttnode-ui/dpx-buttnode-ui.py"
+    destination = "/tmp/dpx-buttnode-ui.py"
   }
 
   # System configuration (hostname, first-login cleanup, SSH)
@@ -87,6 +87,24 @@ build {
       "export BUTTONS_BUILD=${var.build}",
       "chmod +x /tmp/install-buttons.sh",
       "/tmp/install-buttons.sh"
+    ]
+  }
+
+  # Copy the Companion Satellite install script into the image
+  provisioner "file" {
+    source      = "scripts/install-satellite.sh"
+    destination = "/tmp/install-satellite.sh"
+  }
+
+  # Install Companion Satellite (headless, stable build — runs as root)
+  # Downloads from GitHub inside the chroot; requires internet access.
+  # Installs but leaves disabled by default (dpx-buttnode-ui Mode tab activates it).
+  provisioner "shell" {
+    execute_command = "chmod +x {{ .Path }}; {{ .Vars }} su root -c {{ .Path }}"
+    inline_shebang  = "/bin/bash -e"
+    inline = [
+      "chmod +x /tmp/install-satellite.sh",
+      "/tmp/install-satellite.sh"
     ]
   }
 }

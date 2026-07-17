@@ -43,7 +43,7 @@ fp-info-cache
 ##########------ dpx_buttons_relay_armbian ------######
 # Build outputs
 artifacts/
-output-buttonspi/
+output-dpx-buttnode/
 build/
 
 # Downloaded packages (never commit these — use the mirror release instead)

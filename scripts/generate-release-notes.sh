@@ -17,7 +17,7 @@ OUT="/tmp/release-notes.md"
 BOARD_LIST=""
 for f in "$ASSETS_DIR"/*.img.gz; do
     [ -f "$f" ] || continue
-    BOARD=$(basename "$f" | sed 's/-buttons-usb-relay-.*//')
+    BOARD=$(basename "$f" | sed 's/-dpx-buttnode-.*//') 
     FILE=$(basename "$f")
     BOARD_LIST="${BOARD_LIST}- \`${BOARD}\` — \`${FILE}\`
 "

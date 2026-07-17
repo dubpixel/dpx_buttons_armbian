@@ -4,7 +4,7 @@ This document provides operational directives for AI coding assistants (GitHub C
 
 ---
 
-## PROJECT: dpx_buttons_relay_armbian
+## PROJECT: dpx-buttnode
 
 **Status:** v0.4.0 complete (2026-07-16) ✅  
 **Branch:** `main`  
@@ -16,10 +16,10 @@ Automated GitHub Actions build pipeline that produces flash-ready `.img.gz` Armb
 
 | Component | Tech/Location | Purpose | Notes |
 |-----------|---------------|---------|-------|
-| Packer build definition | HCL / `buttons-usb-relay.pkr.hcl` | Chroot customization of Armbian image | Uses `arm-image` plugin v0.2.7; targets 5 GB image |
-| Install script | Bash / `scripts/install-buttons.sh` | Installs `.deb`, installs dpx-node-ui + dpx-set-hostname, enables all services, registers mDNS service | Runs as root inside Packer shell provisioner |
+| Packer build definition | HCL / `dpx-buttnode.pkr.hcl` | Chroot customization of Armbian image | Uses `arm-image` plugin v0.2.7; targets 5 GB image |
+| Install script | Bash / `scripts/install-buttons.sh` | Installs `.deb`, installs dpx-buttnode-ui + dpx-set-hostname, enables all services, registers mDNS service | Runs as root inside Packer shell provisioner |
 | Hostname script | Bash / `scripts/dpx-set-hostname.sh` | Sets `dpx-buttnode-XXXX` hostname from MAC on first boot | Reads MAC from sysfs (`/sys/class/net/<iface>/type`); oneshot service runs Before=network.target avahi-daemon.service |
-| Web UI | Python / `src/dpx-node-ui/dpx-node-ui.py` | Device config UI on port 8080: hostname, DHCP/static network, USB devices, node discovery | Pure Python 3 stdlib; managed by `dpx-node-ui.service` |
+| Web UI | Python / `src/dpx-buttnode-ui/dpx-buttnode-ui.py` | Device config UI on port 8080: hostname, DHCP/static network, USB devices, node discovery, mode switch | Pure Python 3 stdlib; managed by `dpx-buttnode-ui.service` |
 | Download script | Bash / `scripts/download-buttons.sh` | Pulls `.tar.gz` from mirror release, extracts `.deb` | Primary: `gh release download`; fallback: `gh api /releases` list + `curl` direct URL |
 | Mirror upload helper | Bash / `scripts/upload-mirror.sh` | LOCAL script — uploads new Bitfocus package to mirror release | Run by maintainer when new Buttons version drops; requires `gh` auth |
 | Build workflow | YAML / `.github/workflows/armbian-builder.yaml` | Reusable: builds Armbian + downloads package + runs Packer + uploads artifact | Called by `release-action.yaml` or triggered manually |
@@ -36,7 +36,7 @@ Automated GitHub Actions build pipeline that produces flash-ready `.img.gz` Armb
 **While coding:**
 - Never commit `.tar.gz`, `.deb`, `.img`, or `.img.gz` files — they are gitignored; use the mirror release
 - Workflow YAML changes must be tested by manually triggering `armbian-builder.yaml` on one board before touching the matrix
-- The `deb_path` variable in `buttons-usb-relay.pkr.hcl` must always point to `artifacts/bitfocus-buttons-usb-relay-headless.deb` — that's the normalized name `download-buttons.sh` outputs
+- The `deb_path` variable in `dpx-buttnode.pkr.hcl` must always point to `artifacts/bitfocus-buttons-usb-relay-headless.deb` — that's the normalized name `download-buttons.sh` outputs
 - Keep the `buttons-deb-mirror` release tag permanent — never delete it; it is the CI package source
 - File header per AGENTS.md §3
 
@@ -59,7 +59,7 @@ Automated GitHub Actions build pipeline that produces flash-ready `.img.gz` Armb
 - ❌ Add `BITFOCUS_EMAIL` / `BITFOCUS_PASSWORD` secrets — the mirror approach eliminates this entirely
 - ❌ Commit binary files (`.deb`, `.tar.gz`, images) to git — use the mirror release
 - ❌ Delete or rename the `buttons-deb-mirror` release tag — it breaks all CI builds
-- ❌ Change the Packer output path `output-buttonspi/` without updating the compression step in `armbian-builder.yaml`
+- ❌ Change the Packer output path `output-dpx-buttnode/` without updating the compression step in `armbian-builder.yaml`
 - ❌ Modify the board matrix in `release-action.yaml` without confirming the board is in the Armbian supported list
 
 ### Key Decisions
@@ -85,14 +85,14 @@ Automated GitHub Actions build pipeline that produces flash-ready `.img.gz` Armb
 **Update Buttons to a new version:**
 ```bash
 ./scripts/upload-mirror.sh ~/Downloads/bitfocus-buttons-usb-relay-headless_X.Y.Z_arm64.tar.gz
-gh workflow run release-action.yaml --repo dubpixel/dpx_buttons_relay_armbian
+gh workflow run release-action.yaml --repo dubpixel/dpx-buttnode
 ```
 
 **Manual single-board test build:**
-Go to Actions → Build Armbian + Buttons USB Relay Image → Run workflow → pick board
+Go to Actions → Build Armbian + dpx-buttnode Image → Run workflow → pick board
 
 **Force re-release of current version:**
-Actions → Release — Buttons USB Relay Images → Run workflow → Force: true
+Actions → Release — dpx-buttnode Images → Run workflow → Force: true
 
 **Add a new board to the matrix:**
 Edit `.github/workflows/release-action.yaml` under `matrix.board`, add the Armbian board ID. Also add it to the `workflow_dispatch` options in `armbian-builder.yaml`.
@@ -103,7 +103,7 @@ Edit `.github/workflows/release-action.yaml` under `matrix.board`, add the Armbi
 
 **Check what version is in the mirror:**
 ```bash
-gh release view buttons-deb-mirror --repo dubpixel/dpx_buttons_relay_armbian --json assets --jq '.assets[].name'
+gh release view buttons-deb-mirror --repo dubpixel/dpx-buttnode --json assets --jq '.assets[].name'
 ```
 
 ### Reference

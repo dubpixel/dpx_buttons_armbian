@@ -4,7 +4,7 @@
 # Installs the Bitfocus Buttons USB Relay headless .deb that was
 # copied to /tmp/ by the Packer file provisioner, then installs:
 #   - dpx-set-hostname.service  (sets dpx-buttnode-XXXX hostname on first boot)
-#   - dpx-node-ui.service       (device config web UI on port 8080)
+#   - dpx-buttnode-ui.service   (device config web UI on port 8080)
 
 set -euo pipefail
 
@@ -46,7 +46,7 @@ install -m 0755 /tmp/dpx-set-hostname.sh /usr/local/bin/dpx-set-hostname.sh
 cat > /etc/systemd/system/dpx-set-hostname.service << 'UNIT'
 [Unit]
 Description=Set unique hostname from device MAC address (dpx-buttnode-XXXX)
-Documentation=https://github.com/dubpixel/dpx_buttons_armbian
+Documentation=https://github.com/dubpixel/dpx-buttnode
 After=local-fs.target
 Before=network.target avahi-daemon.service
 
@@ -64,20 +64,20 @@ UNIT
 systemctl enable dpx-set-hostname.service
 echo "==> dpx-set-hostname.service: enabled"
 
-# ── dpx-node-ui (device config web UI on port 8080) ───────────────────────────
-echo "==> Installing dpx-node-ui"
+# ── dpx-buttnode-ui (device config web UI on port 8080) ─────────────────────
+echo "==> Installing dpx-buttnode-ui"
 
-install -m 0755 /tmp/dpx-node-ui.py /usr/local/bin/dpx-node-ui.py
+install -m 0755 /tmp/dpx-buttnode-ui.py /usr/local/bin/dpx-buttnode-ui.py
 
-cat > /etc/systemd/system/dpx-node-ui.service << 'UNIT'
+cat > /etc/systemd/system/dpx-buttnode-ui.service << 'UNIT'
 [Unit]
-Description=DPX Node UI — device configuration web interface (port 8080)
-Documentation=https://github.com/dubpixel/dpx_buttons_armbian
+Description=DPX Buttnode UI — device configuration web interface (port 8080)
+Documentation=https://github.com/dubpixel/dpx-buttnode
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /usr/local/bin/dpx-node-ui.py
+ExecStart=/usr/bin/python3 /usr/local/bin/dpx-buttnode-ui.py
 Restart=on-failure
 RestartSec=5
 User=root
@@ -86,16 +86,16 @@ User=root
 WantedBy=multi-user.target
 UNIT
 
-systemctl enable dpx-node-ui.service
-echo "==> dpx-node-ui.service: enabled (port 8080)"
+systemctl enable dpx-buttnode-ui.service
+echo "==> dpx-buttnode-ui.service: enabled (port 8080)"
 
-# ── Advertise dpx-node-ui via mDNS (_dpx-buttnode._tcp) ──────────────────────
+# ── Advertise dpx-buttnode-ui via mDNS (_dpx-buttnode._tcp) ─────────────────
 # This allows `avahi-browse _dpx-buttnode._tcp` to discover all units on the LAN
 # and powers the Nodes tab in the web UI.
 echo "==> Registering _dpx-buttnode._tcp mDNS service"
 
 mkdir -p /etc/avahi/services
-cat > /etc/avahi/services/dpx-node-ui.service << 'XML'
+cat > /etc/avahi/services/dpx-buttnode-ui.service << 'XML'
 <?xml version="1.0" standalone='no'?>
 <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
 <service-group>
