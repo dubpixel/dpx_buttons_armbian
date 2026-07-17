@@ -308,7 +308,7 @@ def _discover_buttnodes_raw():
         if len(parts) < 9:
             continue
         proto    = parts[2]   # IPv4 / IPv6
-        hostname = parts[6].rstrip(".")
+        hostname = parts[6].rstrip(".").removesuffix(".local")
         addr     = parts[7]
         port     = parts[8]
         if proto != "IPv4" or hostname in seen:
