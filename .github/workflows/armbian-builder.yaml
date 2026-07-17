@@ -301,13 +301,17 @@ jobs:
           CUSTOM="${{ inputs.custom-board }}"
           SELECTED="${{ inputs.armbian-board }}"
           BOARD="${CUSTOM:-$SELECTED}"
-          ARTIFACT_NAME="${BOARD}-dpx-buttnode-${VERSION}-build${BUILD_VERSION}"
+          BRANCH=$(echo "${{ github.ref_name }}" | sed 's|/|-|g')
+          COMMIT=$(echo "${{ github.sha }}" | cut -c1-7)
+          ARTIFACT_NAME="${BOARD}-dpx-buttnode-${VERSION}-build${BUILD_VERSION}-${BRANCH}-${COMMIT}"
           echo "buttons-version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "artifact-name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
           echo "board=${BOARD}" >> "$GITHUB_OUTPUT"
           echo "Board   : ${BOARD}"
           echo "Version : ${VERSION}"
           echo "Build   : ${BUILD_VERSION}"
+          echo "Branch  : ${BRANCH}"
+          echo "Commit  : ${COMMIT}"
           echo "Artifact: ${ARTIFACT_NAME}"
 
       # ── Build base Armbian image ────────────────────────────────────────────
@@ -368,7 +372,9 @@ jobs:
           CUSTOM="${{ inputs.custom-board }}"
           SELECTED="${{ inputs.armbian-board }}"
           BOARD="${CUSTOM:-$SELECTED}"
-          FINAL_NAME="${BOARD}-dpx-buttnode-${VERSION}-build${BUILD_VERSION}.img"
+          BRANCH=$(echo "${{ github.ref_name }}" | sed 's|/|-|g')
+          COMMIT=$(echo "${{ github.sha }}" | cut -c1-7)
+          FINAL_NAME="${BOARD}-dpx-buttnode-${VERSION}-build${BUILD_VERSION}-${BRANCH}-${COMMIT}.img"
 
           LOOP=$(sudo losetup -fP --show "$IMG")
           ROOT_PART="${LOOP}p1"
