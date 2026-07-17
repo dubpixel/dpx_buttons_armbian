@@ -31,6 +31,25 @@ MODE_FILE      = Path("/etc/dpx-mode")              # 'buttons' or 'satellite'
 SAT_CONFIG     = Path("/etc/dpx-satellite.conf")    # our persistent satellite config
 SAT_BOOT_CFG   = Path("/boot/satellite-config")     # satellite's one-shot import file
 SATELLITE_API  = "http://localhost:9999"             # satellite REST API
+
+# ── TTL cache ──────────────────────────────────────────────────────────────────
+# Subprocess calls (systemctl, lsusb, avahi-browse) are expensive.
+# Cache results with a short TTL so rapid page loads don't re-fork.
+_cache: dict = {}
+_cache_lock = threading.Lock()
+
+def _cached(key, ttl, fn):
+    """Return cached value for key, or call fn(), cache it for ttl seconds."""
+    now = time.monotonic()
+    with _cache_lock:
+        entry = _cache.get(key)
+        if entry and now < entry[1]:
+            return entry[0]
+    val = fn()
+    with _cache_lock:
+        _cache[key] = (val, now + ttl)
+    return val
+
 # ── System helpers ─────────────────────────────────────────────────────────────
 
 def run(cmd):
