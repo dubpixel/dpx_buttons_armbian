@@ -18,52 +18,13 @@ mkdir -p "$ARTIFACTS_DIR"
 
 echo "==> Fetching package from mirror release: ${MIRROR_TAG}"
 
-# Primary: gh release download (simple, standard)
-# Fallback: gh api /releases list + curl direct URL
-# The fallback avoids the /releases/tags/{tag} endpoint which can be flaky.
+# Download the .tar.gz asset from the mirror release
+gh release download "$MIRROR_TAG" \
+    --repo "${GITHUB_REPOSITORY}" \
+    --pattern "*.tar.gz" \
+    --dir "$ARTIFACTS_DIR" \
+    --clobber
 
-TARBALL=""
-
-for attempt in 1 2 3 4 5; do
-    echo "==> Download attempt ${attempt}/5"
-
-    # Primary: gh release download
-    if gh release download "$MIRROR_TAG" \
-        --repo "${GITHUB_REPOSITORY}" \
-        --pattern "*.tar.gz" \
-        --dir "$ARTIFACTS_DIR" \
-        --clobber 2>/dev/null; then
-        TARBALL=$(ls "$ARTIFACTS_DIR"/*.tar.gz | head -1)
-        break
-    fi
-
-    # Fallback: list endpoint → browser_download_url → curl
-    echo "==> Primary failed, trying list API fallback..."
-    ASSET_URL=$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
-        --jq ".[] | select(.tag_name == \"${MIRROR_TAG}\") | .assets[] | select(.name | endswith(\".tar.gz\")) | .browser_download_url" \
-        2>/dev/null | head -1 || true)
-
-    if [[ -n "$ASSET_URL" ]]; then
-        OUTFILE="$ARTIFACTS_DIR/$(basename "$ASSET_URL")"
-        if curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" \
-                --retry 3 --retry-delay 5 \
-                "$ASSET_URL" -o "$OUTFILE"; then
-            TARBALL="$OUTFILE"
-            break
-        fi
-    fi
-
-    if [[ $attempt -eq 5 ]]; then
-        echo "ERROR: Failed to download after 5 attempts"
-        exit 1
-    fi
-    echo "==> Retrying in 20s..."
-    sleep 20
-done
-
-if [[ -z "$TARBALL" || ! -f "$TARBALL" ]]; then
-    TARBALL=$(ls "$ARTIFACTS_DIR"/*.tar.gz 2>/dev/null | head -1)
-fi
 TARBALL=$(ls "$ARTIFACTS_DIR"/*.tar.gz | head -1)
 echo "==> Downloaded: $(basename "$TARBALL") ($(du -sh "$TARBALL" | cut -f1))"
 

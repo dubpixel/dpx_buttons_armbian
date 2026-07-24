@@ -40,7 +40,7 @@ fp-info-cache
 # kicad local profile
 *.kicad_prl
 
-##########------ dpx_buttons_relay_armbian ------######
+##########------ dpx-buttnode ------######
 # Build outputs
 artifacts/
 output-dpx-buttnode/

@@ -520,6 +520,7 @@ Distributed under the [LICENSE_TYPE] License. See `LICENSE.txt` for more informa
 * [Armbian](https://www.armbian.com/) — Linux for ARM SBCs
 * [Bitfocus Buttons USB Relay — Official Docs](https://support.bitfocus.io/hc/en-us/articles/33855997471890-Bitfocus-Buttons-USB-Relay-Raspberry-Pi) — source of truth for installation, service management, and configuration
 * [Bitfocus Companion Satellite — GitHub](https://github.com/bitfocus/companion-satellite) — official install script and documentation
+* [dpx_raxda_rockpis](https://github.com/dubpixel/dpx_raxda_rockpis) — 3D printable POE enclosure for the Rock Pi S hardware this project runs on
 
 ---
 
