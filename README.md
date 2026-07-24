@@ -10,8 +10,6 @@
 <!--search dpx-buttnode.. search & replace is COMMAND OPTION F -->
 
 <!--this is the version for software -->
-<!--todo ** add small product image thats not in a details tag -->
-<!--todo ** new software product image? Remove it? -->
 <!--igure out how to get the details tag to properly render in jekyll for gihub pages.-->
 
 
@@ -58,8 +56,15 @@
     <a href="https://github.com/dubpixel/dpx_buttnode/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
     ·
     <a href="https://github.com/dubpixel/dpx_raxda_rockpis">🖨️ 3D Case for Rock Pi S</a>
+    ·
+    <a href="#dpx-buttnode-ui">📸 Screenshots</a>
     </p>
 </div>
+
+<div align="center">
+  <img src="images/front.png" alt="dpx-buttnode hardware" width="600">
+</div>
+
    <br />
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -290,7 +295,9 @@ Replace `orangepizero3` with any board ID from the [Armbian hardware list](https
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-### dpx-buttnode-ui — Device Config Web Interface
+<a id="dpx-buttnode-ui"></a>
+
+## dpx-buttnode-ui — Device Config Web Interface
 
 Every device runs a lightweight web UI on **port 8080**:
 
@@ -299,8 +306,14 @@ http://dpx-buttnode-XXXX.local:8080
 ```
 
 <div align="center">
-  <img src="images/ui-status.png" alt="Status tab" width="480">
-  <img src="images/ui-mode.png" alt="Mode tab" width="480">
+  <img src="images/001_status.jpe" alt="Status tab" width="480">
+  <img src="images/002_hostname.jpe" alt="Hostname tab" width="480">
+  <br/>
+  <img src="images/003_network.jpe" alt="Network tab" width="480">
+  <img src="images/004_devices.jpe" alt="Devices tab" width="480">
+  <br/>
+  <img src="images/005_nodes.jpe" alt="Nodes tab" width="480">
+  <img src="images/006_mode.jpe" alt="Mode tab" width="480">
 </div>
 
 | Tab | What it does |
