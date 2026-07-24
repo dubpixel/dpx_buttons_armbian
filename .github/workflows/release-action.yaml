@@ -2,8 +2,7 @@ name: Release — dpx-buttnode Images
 
 # Triggers:
 #   1. Manual dispatch (on-demand, any time)
-#   2. Daily schedule — auto-detects if the mirror has a version newer than
-#      the latest published release, and builds if so
+#   2. Daily schedule — builds only if the mirror has a version not yet released
 #
 # No Bitfocus credentials required. Version is read from the .tar.gz filename
 # in the 'buttons-deb-mirror' GitHub Release.
@@ -135,13 +134,13 @@ jobs:
           FORCE: ${{ github.event.inputs.force || 'false' }}
         run: |
           BUILD_VERSION=$(cat VERSION)
-          TAG="dpx-buttnode-v${BUILD_VERSION}"
+          TAG="dpx-buttnode-${VERSION}-build${BUILD_VERSION}"
           SAT_VERSION=$(node -e "console.log(require('/opt/companion-satellite/package.json').version)" 2>/dev/null || echo "unknown")
           bash scripts/generate-release-notes.sh \
             "$VERSION" release-assets "$BUILD_VERSION" \
             "${{ github.ref_name }}" "$(echo '${{ github.sha }}' | cut -c1-7)" "$SAT_VERSION"
 
-          # Write buttons-version.txt so the cron job can detect future Buttons updates
+          # Write buttons-version.txt for release notes
           echo "$VERSION" > /tmp/buttons-version.txt
 
           # On force rebuild: replace the existing release for this exact tag
