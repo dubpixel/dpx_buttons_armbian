@@ -1,4 +1,4 @@
-name: Build Armbian + Buttons USB Relay Image
+name: Build Armbian + dpx-buttnode Image
 
 # Reusable by release-action.yaml, or triggered manually for a single board.
 # No Bitfocus credentials required — pulls the package from the repo's
@@ -301,13 +301,17 @@ jobs:
           CUSTOM="${{ inputs.custom-board }}"
           SELECTED="${{ inputs.armbian-board }}"
           BOARD="${CUSTOM:-$SELECTED}"
-          ARTIFACT_NAME="${BOARD}-buttons-usb-relay-${VERSION}-build${BUILD_VERSION}"
+          BRANCH=$(echo "${{ github.ref_name }}" | sed 's|/|-|g')
+          COMMIT=$(echo "${{ github.sha }}" | cut -c1-7)
+          ARTIFACT_NAME="${BOARD}-dpx-buttnode-${BUILD_VERSION}-${BRANCH}-${COMMIT}"
           echo "buttons-version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "artifact-name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
           echo "board=${BOARD}" >> "$GITHUB_OUTPUT"
           echo "Board   : ${BOARD}"
           echo "Version : ${VERSION}"
           echo "Build   : ${BUILD_VERSION}"
+          echo "Branch  : ${BRANCH}"
+          echo "Commit  : ${COMMIT}"
           echo "Artifact: ${ARTIFACT_NAME}"
 
       # ── Build base Armbian image ────────────────────────────────────────────
@@ -342,7 +346,7 @@ jobs:
       - name: Initialize Packer plugins
         env:
           PACKER_GITHUB_API_TOKEN: ${{ github.token }}
-        run: sudo --preserve-env=PACKER_GITHUB_API_TOKEN packer init buttons-usb-relay.pkr.hcl
+        run: sudo --preserve-env=PACKER_GITHUB_API_TOKEN packer init dpx-buttnode.pkr.hcl
 
       - name: Build customized image with Packer
         run: |
@@ -350,7 +354,11 @@ jobs:
             -var "url=build/output/images/armbian.img" \
             -var "build=$(cat artifacts/buttons-version.txt)" \
             -var "deb_path=artifacts/bitfocus-buttons-usb-relay-headless.deb" \
-            buttons-usb-relay.pkr.hcl
+            -var "dpx_version=$(cat VERSION)" \
+            -var "git_branch=${{ github.ref_name }}" \
+            -var "git_commit=$(echo '${{ github.sha }}' | cut -c1-7)" \
+            -var "build_date=$(date -u +%Y-%m-%d)" \
+            dpx-buttnode.pkr.hcl
 
       # ── Compress and upload ────────────────────────────────────────────────
       - name: Install zerofree
@@ -358,13 +366,15 @@ jobs:
 
       - name: Zero free space and compress image
         run: |
-          IMG="output-buttonspi/armbian-buttons-usb-relay.img"
+          IMG="output-dpx-buttnode/armbian-dpx-buttnode.img"
           VERSION=$(cat artifacts/buttons-version.txt)
           BUILD_VERSION=$(cat VERSION)
           CUSTOM="${{ inputs.custom-board }}"
           SELECTED="${{ inputs.armbian-board }}"
           BOARD="${CUSTOM:-$SELECTED}"
-          FINAL_NAME="${BOARD}-buttons-usb-relay-${VERSION}-build${BUILD_VERSION}.img"
+          BRANCH=$(echo "${{ github.ref_name }}" | sed 's|/|-|g')
+          COMMIT=$(echo "${{ github.sha }}" | cut -c1-7)
+          FINAL_NAME="${BOARD}-dpx-buttnode-${BUILD_VERSION}-${BRANCH}-${COMMIT}.img"
 
           LOOP=$(sudo losetup -fP --show "$IMG")
           ROOT_PART="${LOOP}p1"

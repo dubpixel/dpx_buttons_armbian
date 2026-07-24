@@ -7,7 +7,7 @@
 
 <!-- /// d   u   b   p   i   x   e   l  ---  f   o   r   k   ////--v0.5.7 -->
 <!--this has additionally been modifed by @dubpixel for hardware use -->
-<!--search dpx_buttons_relay_armbian.. search & replace is COMMAND OPTION F -->
+<!--search dpx-buttnode.. search & replace is COMMAND OPTION F -->
 
 <!--this is the version for software -->
 <!--todo ** add small product image thats not in a details tag -->
@@ -33,27 +33,29 @@
 [![Issues][issues-shield]][issues-url]
 [![License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
-[![Latest Release](https://img.shields.io/github/v/release/dubpixel/dpx_buttons_relay_armbian?label=Buttons%20USB%20Relay&color=blue&style=flat-square)](https://github.com/dubpixel/dpx_buttons_relay_armbian/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/dubpixel/dpx_buttnode?label=dpx-buttnode&color=blue&style=flat-square)](https://github.com/dubpixel/dpx_buttnode/releases/latest)
 </div>
 <!-- PROJECT LOGO -->
 <div align="center">
-  <a href="https://github.com/dubpixel/dpx_buttons_relay_armbian">
+  <a href="https://github.com/dubpixel/dpx_buttnode">
     <img src="images/logo.png" alt="Logo" height="120">
   </a>
-<h1 align="center">dpx_buttons_relay_armbian</h1>
-<h3 align="center"><i>Flash-ready Armbian images with Bitfocus Buttons USB Relay pre-installed</i></h3>
+<h1 align="center">dpx-buttnode</h1>
+<h3 align="center"><i>Flash-ready Armbian images — Bitfocus Buttons USB Relay <strong>and</strong> Companion Satellite, switchable at runtime</i></h3>
   <p align="center">
     Automated GitHub Actions build pipeline that produces ready-to-flash <code>.img.gz</code> images
-    for ARM single-board computers (Orange Pi Zero, etc.) with
-    <a href="https://bitfocus.io/buttons">Bitfocus Buttons USB Relay</a> pre-installed and auto-starting on boot.
+    for ARM single-board computers (Rock Pi S, Orange Pi Zero, etc.) with
+    <a href="https://bitfocus.io/buttons">Bitfocus Buttons USB Relay</a> <strong>and</strong>
+    <a href="https://github.com/bitfocus/companion-satellite">Companion Satellite</a> pre-installed.
+    Switch between modes from the browser — no re-flash needed.
     Write the image, plug in your Stream Deck, power on — done.
     <br /><br />
      »  
-     <a href="https://github.com/dubpixel/dpx_buttons_relay_armbian/releases"><strong>Download a Release »</strong></a>
+     <a href="https://github.com/dubpixel/dpx_buttnode/releases"><strong>Download a Release »</strong></a>
      <br />
-    <a href="https://github.com/dubpixel/dpx_buttons_relay_armbian/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    <a href="https://github.com/dubpixel/dpx_buttnode/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
-    <a href="https://github.com/dubpixel/dpx_buttons_relay_armbian/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/dubpixel/dpx_buttnode/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
     </p>
 </div>
    <br />
@@ -75,7 +77,7 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#dpx-node-ui">dpx-node-ui — Device Config UI</a></li>
+    <li><a href="#dpx-buttnode-ui">dpx-buttnode-ui — Device Config UI</a></li>
     <li><a href="#reflection">Reflection</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
@@ -95,10 +97,12 @@ The build pipeline is fully automated via GitHub Actions:
 <ol>
   <li>The Armbian build framework compiles a minimal Ubuntu Noble (24.04) base image for the target board.</li>
   <li>The Bitfocus Buttons USB Relay <code>.tar.gz</code> package is pulled from this repo's <code>buttons-deb-mirror</code> release (maintained manually — no Bitfocus account or secrets needed in CI).</li>
-  <li>HashiCorp Packer chroots into the image, installs the <code>.deb</code>, enables the systemd service, sets a placeholder hostname of <code>dpx-buttnode</code>, enables mDNS, and removes the first-login prompt.</li>
+  <li>HashiCorp Packer chroots into the image, installs the Buttons <code>.deb</code>, then builds and installs Companion Satellite from source via the official install script. Both services are installed; <strong>Buttons is the default active mode</strong>.</li>
   <li>On first boot, <code>dpx-set-hostname.service</code> reads the board's Ethernet MAC address from sysfs and permanently sets the hostname to <code>dpx-buttnode-XXXX</code> (last 4 hex chars, e.g. <code>dpx-buttnode-C833</code>).</li>
   <li>The image is zeroed, gzip-compressed, and published as a GitHub Release.</li>
 </ol>
+
+> **Note on build time:** Companion Satellite is built from source inside the chroot (Node.js + Yarn build). This adds ~30–60 minutes to the total build time.
 
 A daily scheduled workflow checks whether the mirror release has a version that hasn't been built yet, and automatically triggers a full matrix build if so.
 
@@ -114,7 +118,8 @@ A daily scheduled workflow checks whether the mirror release has a version that 
 * [Armbian Build Framework](https://github.com/armbian/build) — base Linux image for ARM SBCs
 * [HashiCorp Packer](https://www.packer.io/) + [arm-image plugin](https://github.com/solo-io/packer-plugin-arm-image) — chroot image customization
 * [GitHub Actions](https://github.com/features/actions) — CI/CD build, scheduling, and release publishing
-* [Bitfocus Buttons USB Relay (headless)](https://bitfocus.io/buttons) — the software being installed
+* [Bitfocus Buttons USB Relay (headless)](https://bitfocus.io/buttons) — USB relay mode
+* [Bitfocus Companion Satellite](https://github.com/bitfocus/companion-satellite) — Companion satellite mode
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 <!-- GETTING STARTED -->
 
@@ -129,7 +134,7 @@ A daily scheduled workflow checks whether the mirror release has a version that 
 
 ### Supported Boards
 
-The following boards are built **automatically** on every new Buttons release and published to [Releases](https://github.com/dubpixel/dpx_buttons_relay_armbian/releases):
+The following boards are built **automatically** on every new Buttons release and published to [Releases](https://github.com/dubpixel/dpx_buttnode/releases):
 
 | Board | Armbian ID |
 |---|---|
@@ -158,10 +163,10 @@ All 150+ [Armbian-supported boards](https://www.armbian.com/download/) are avail
 
 #### 1. Download the image
 
-Go to [**Releases**](https://github.com/dubpixel/dpx_buttons_relay_armbian/releases) and download the `.img.gz` for your board:
+Go to [**Releases**](https://github.com/dubpixel/dpx_buttnode/releases) and download the `.img.gz` for your board:
 
 ```
-rockpi-s-buttons-usb-relay-0.1.0-beta.4.img.gz
+rockpi-s-dpx-buttnode-0.1.0-beta.4.img.gz
 ```
 
 #### 2. Flash to SD card
@@ -177,7 +182,7 @@ rockpi-s-buttons-usb-relay-0.1.0-beta.4.img.gz
 diskutil list
 
 diskutil unmountDisk /dev/diskN
-gunzip -c rockpi-s-buttons-usb-relay-0.1.0-beta.4.img.gz \
+gunzip -c rockpi-s-dpx-buttnode-0.1.0-beta.4.img.gz \
   | sudo dd of=/dev/rdiskN bs=4m status=progress
 diskutil eject /dev/diskN
 ```
@@ -186,7 +191,7 @@ diskutil eject /dev/diskN
 ```bash
 lsblk   # find your SD card device
 
-gunzip -c rockpi-s-buttons-usb-relay-0.1.0-beta.4.img.gz \
+gunzip -c rockpi-s-dpx-buttnode-0.1.0-beta.4.img.gz \
   | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
@@ -203,7 +208,7 @@ gunzip -c rockpi-s-buttons-usb-relay-0.1.0-beta.4.img.gz \
 
 > **Hostname:** Each device gets a unique hostname derived from its MAC address: `dpx-buttnode-XXXX.local` where `XXXX` is the last 4 hex characters of the MAC (e.g. `dpx-buttnode-C833.local`). This is stable — the same board always gets the same name.
 
-> **Web UI:** A device config panel runs on port 8080: `http://dpx-buttnode-XXXX.local:8080` — change hostname, switch DHCP/static IP, manage devices, and discover other buttnodes on the network.
+> **Web UI:** A device config panel runs on port 8080: `http://dpx-buttnode-XXXX.local:8080` — change hostname, switch DHCP/static IP, manage devices, discover other buttnodes, and **switch between Buttons and Satellite mode**.
 
 > **SSH:** enabled — `ssh root@dpx-buttnode-XXXX.local` — default password `1234` (Armbian forces a change on first login).
 
@@ -236,10 +241,10 @@ The daily scheduled check at 06:00 UTC will detect the new version and automatic
 
 To trigger it **right now** instead of waiting:
 ```bash
-gh workflow run release-action.yaml --repo dubpixel/dpx_buttons_relay_armbian
+gh workflow run release-action.yaml --repo dubpixel/dpx_buttnode
 ```
 
-Watch it: **Actions → Release — Buttons USB Relay Images → latest run**
+Watch it: **Actions → Release — dpx-buttnode Images → latest run**
 
 ---
 
@@ -248,7 +253,7 @@ Watch it: **Actions → Release — Buttons USB Relay Images → latest run**
 Any of the 150+ Armbian-supported boards can be built on demand. The artifact is available for 7 days under the Actions run (not published as a public release).
 
 **Via GitHub web UI:**
-1. Go to **Actions → Build Armbian + Buttons USB Relay Image**
+1. Go to **Actions → Build Armbian + dpx-buttnode Image**
 2. Click **Run workflow**
 3. Pick your board from the dropdown
 4. Click **Run workflow**
@@ -257,7 +262,7 @@ Any of the 150+ Armbian-supported boards can be built on demand. The artifact is
 **Via terminal:**
 ```bash
 gh workflow run armbian-builder.yaml \
-  --repo dubpixel/dpx_buttons_relay_armbian \
+  --repo dubpixel/dpx_buttnode \
   -f armbian-board=orangepizero3
 ```
 
@@ -273,7 +278,7 @@ Replace `orangepizero3` with any board ID from the [Armbian hardware list](https
    ./scripts/upload-mirror.sh ~/Downloads/bitfocus-buttons-usb-relay-headless_0.1.0-beta.4_arm64.tar.gz
    ```
 3. Trigger a first build:
-   - **Actions → Release — Buttons USB Relay Images → Run workflow → Force: true**
+   - **Actions → Release — dpx-buttnode Images → Run workflow → Force: true**
 4. Done — updates are fully automated from here
 
 > No GitHub Secrets needed. The pipeline uses only the built-in `GITHUB_TOKEN`.
@@ -283,7 +288,7 @@ Replace `orangepizero3` with any board ID from the [Armbian hardware list](https
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-### dpx-node-ui — Device Config Web Interface
+### dpx-buttnode-ui — Device Config Web Interface
 
 Every device runs a lightweight web UI on **port 8080**:
 
@@ -291,13 +296,19 @@ Every device runs a lightweight web UI on **port 8080**:
 http://dpx-buttnode-XXXX.local:8080
 ```
 
+<div align="center">
+  <img src="images/ui-status.png" alt="Status tab" width="480">
+  <img src="images/ui-mode.png" alt="Mode tab" width="480">
+</div>
+
 | Tab | What it does |
 |---|---|
-| **Status** | Hostname, IP, MAC, network mode, Buttons + mDNS service health, USB devices |
+| **Status** | Hostname, IP, MAC, network mode, **current mode + active service status**, mDNS health, USB devices |
 | **Hostname** | Change the device hostname — applies immediately and persists across reboots |
 | **Network** | Switch between DHCP and static IP. Survives reboots. |
 | **Devices** | USB device list, Stream Deck USB power cycle, Buttons service restart |
 | **Nodes** | Discover all other `dpx-buttnode-*` units on the LAN with links to each web UI |
+| **Mode** | Switch between Buttons and Satellite. Configure Companion server IP + port for Satellite mode. |
 
 > **Note:** The Network tab writes directly to `/etc/systemd/network/` and restarts `systemd-networkd`. After an IP change, navigate to the new address — the hostname (`dpx-buttnode-XXXX.local`) resolves correctly via mDNS within a few seconds.
 
@@ -317,7 +328,83 @@ If mDNS isn't resolving, find the IP from your router and use that directly.
 
 ---
 
-### Check the relay is running
+### Check which mode is active
+
+```bash
+cat /etc/dpx-mode   # prints: buttons  or  satellite
+```
+
+---
+
+### Switch modes from the terminal
+
+You can also switch from SSH — same as what the UI does:
+
+```bash
+# Switch to Satellite mode
+systemctl stop bitfocus-buttons-usb-relay
+systemctl disable bitfocus-buttons-usb-relay
+systemctl enable satellite
+systemctl start satellite
+echo satellite > /etc/dpx-mode
+
+# Switch back to Buttons mode
+systemctl stop satellite
+systemctl disable satellite
+systemctl enable bitfocus-buttons-usb-relay
+systemctl start bitfocus-buttons-usb-relay
+echo buttons > /etc/dpx-mode
+```
+
+---
+
+### Companion Satellite mode
+
+In Satellite mode the device connects outbound to a running Bitfocus Companion instance and exposes the attached Stream Deck(s) as remote surfaces.
+
+**Requirements:**
+- Bitfocus Companion **v3.4.0 or newer** running somewhere on the network
+- Companion must have **Satellite** enabled: _Settings → Surfaces → Enable Satellite_
+- TCP port **16622** reachable from the dpx-buttnode to the Companion machine
+
+**Configure from the web UI:**
+1. Open `http://dpx-buttnode-XXXX.local:8080`
+2. Go to the **Mode** tab
+3. Enter your Companion server IP and port (default `16622`)
+4. Click **Switch to Satellite** — the device switches immediately and persists on reboot
+
+**Configure from SSH:**
+```bash
+# Write persistent config
+cat > /etc/dpx-satellite.conf <<EOF
+HOST=192.168.1.10
+PORT=16622
+EOF
+
+# Stage it for satellite's boot import
+cat > /boot/satellite-config <<EOF
+COMPANION_IP=192.168.1.10
+COMPANION_PORT=16622
+EOF
+
+# Or push it live to the running service via REST API
+curl -X POST http://localhost:9999/api/config \
+  -H 'Content-Type: application/json' \
+  -d '{"host":"192.168.1.10","port":16622}'
+```
+
+**Check satellite status:**
+```bash
+systemctl status satellite
+journalctl -u satellite -f
+
+# REST API shows current config + connection status
+curl http://localhost:9999/api/config
+```
+
+---
+
+### Check the Buttons relay is running
 
 ```bash
 # Is it running?
@@ -386,12 +473,15 @@ dns-sd -B _dpx-buttnode._tcp local     # macOS
 - [x] Daily automated version check + GitHub Release publishing
 - [x] `upload-mirror.sh` helper for one-command package updates
 - [x] Dynamic MAC-derived hostname (`dpx-buttnode-XXXX`) on first boot
-- [x] `dpx-node-ui` — device config web UI on port 8080 (hostname, network, devices, node discovery)
+- [x] `dpx-buttnode-ui` — device config web UI on port 8080 (hostname, network, devices, node discovery)
+- [x] Companion Satellite A/B mode — both services baked in, switch without re-flash
+- [x] Mode tab in web UI — configure Companion server IP/port, switch modes from browser
 - [ ] Additional board support (Banana Pi M2 Zero, NanoPi R4S, Orange Pi 5)
 - [ ] SHA256 checksums attached to each release
 - [ ] WiFi pre-configuration support in image (via Armbian `wpa_supplicant` overlay)
+- [ ] OTA image update — download latest release from GitHub and flash in-place (kexec into RAM, `dd` to SD, reboot)
 
-See the [open issues](https://github.com/dubpixel/dpx_buttons_relay_armbian/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/dubpixel/dpx_buttnode/issues) for a full list of proposed features (and known issues).
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -408,8 +498,8 @@ Don't forget to give the project a star! Thanks again!
 5. Open a Pull Request
 
 ### Top contributors:
-<a href="https://github.com/dubpixel/dpx_buttons_relay_armbian/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=dubpixel/dpx_buttons_relay_armbian" alt="contrib.rocks image" />
+<a href="https://github.com/dubpixel/dpx_buttnode/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=dubpixel/dpx_buttnode" alt="contrib.rocks image" />
 </a>
 
 <!-- LICENSE -->
@@ -420,7 +510,7 @@ Distributed under the [LICENSE_TYPE] License. See `LICENSE.txt` for more informa
 
   ### Joshua Fleitell - i@dubpixel.tv
 
-  Project Link: [https://github.com/dubpixel/dpx_buttons_relay_armbian](https://github.com/dubpixel/dpx_buttons_relay_armbian)
+  Project Link: [https://github.com/dubpixel/dpx_buttnode](https://github.com/dubpixel/dpx_buttnode)
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
@@ -429,6 +519,8 @@ Distributed under the [LICENSE_TYPE] License. See `LICENSE.txt` for more informa
 * [Bitfocus](https://bitfocus.io/) — creators of Buttons and Companion
 * [Armbian](https://www.armbian.com/) — Linux for ARM SBCs
 * [Bitfocus Buttons USB Relay — Official Docs](https://support.bitfocus.io/hc/en-us/articles/33855997471890-Bitfocus-Buttons-USB-Relay-Raspberry-Pi) — source of truth for installation, service management, and configuration
+* [Bitfocus Companion Satellite — GitHub](https://github.com/bitfocus/companion-satellite) — official install script and documentation
+* [dpx_raxda_rockpis](https://github.com/dubpixel/dpx_raxda_rockpis) — 3D printable POE enclosure for the Rock Pi S hardware this project runs on
 
 ---
 
@@ -624,16 +716,16 @@ Any board in [Armbian's supported hardware list](https://www.armbian.com/downloa
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/dubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
-[contributors-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/gdubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
-[forks-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/network/members
-[stars-shield]: https://img.shields.io/github/stars/dubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
-[stars-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/stargazers
-[issues-shield]: https://img.shields.io/github/issues/dubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
-[issues-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/issues
-[license-shield]: https://img.shields.io/github/license/dubpixel/dpx_buttons_relay_armbian.svg?style=flat-square
-[license-url]: https://github.com/dubpixel/dpx_buttons_relay_armbian/blob/main/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/dubpixel/dpx_buttnode.svg?style=flat-square
+[contributors-url]: https://github.com/dubpixel/dpx_buttnode/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/dubpixel/dpx_buttnode.svg?style=flat-square
+[forks-url]: https://github.com/dubpixel/dpx_buttnode/network/members
+[stars-shield]: https://img.shields.io/github/stars/dubpixel/dpx_buttnode.svg?style=flat-square
+[stars-url]: https://github.com/dubpixel/dpx_buttnode/stargazers
+[issues-shield]: https://img.shields.io/github/issues/dubpixel/dpx_buttnode.svg?style=flat-square
+[issues-url]: https://github.com/dubpixel/dpx_buttnode/issues
+[license-shield]: https://img.shields.io/github/license/dubpixel/dpx_buttnode.svg?style=flat-square
+[license-url]: https://github.com/dubpixel/dpx_buttnode/blob/main/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/jfleitell
 [product-front]: images/front.png
